@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+	<!--  execute node and return execution result code -->
+	<action id='w_0' type='cmd' os='unix'>
+		<exec>/bin/w</exec> <!--  execute locally. need return code only -->
+	</action>
+</bt>

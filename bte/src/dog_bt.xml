@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<bt>
-	<sequence name="behave">
-		<node name="guard"></node>
-		<node name="eat"></node>
-	</sequence>
-</bt>

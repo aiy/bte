@@ -16,10 +16,12 @@ enum os_type {
 };
 typedef enum os_type os_t;
 
-enum  rc_type {
-	RC_SUCCESS,
-	RC_FAILURE,
+enum rc_type {
+  RC_SUCCESS, // clean success
+  RC_FAILURE, // clean failure
+  RC_ERROR, // unexpected failure
 };
+
 typedef enum rc_type rc_t;
 
 struct action_node {
@@ -147,20 +149,25 @@ int streamFile(char *filename) {
     }
     //xmlTextReaderNormalization(reader);
 
+    // process root as sequence
 	ret = xmlTextReaderRead(reader);
 	while (ret == 1) {
 		// FIXME has to return if any node after root has failure
 		task_rc = processNode(reader);
+    printf("%s: task_rc %d\n", __FUNCTION__, task_rc);
+		if (task_rc != RC_SUCCESS) {
+		  goto bail;
+		}
 		ret = xmlTextReaderRead(reader);
 		printf("%s: task_rc %d\n", __FUNCTION__, task_rc);
 	}
-	xmlFreeTextReader(reader);
 	if (ret != 0) {
 		printf("%s: failed to parse file %s\n", __FUNCTION__, filename);
-        goto bail;
+    goto bail;
 	}
 
 bail:
+  xmlFreeTextReader(reader);
 	printf("%s: task_rc %d\n", __FUNCTION__, task_rc);
 	printf("%s: exit\n", __FUNCTION__);
 	return task_rc;

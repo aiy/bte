@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+	<!--  execute children obey order return if failed
+	 return success if all succeed -->
+	<sequence name="behave">
+		<action name="do1"></action>
+		<action name="do2"></action>
+		<action name="do3"></action>
+	</sequence>
+</bt>

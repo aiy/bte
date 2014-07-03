@@ -30,6 +30,8 @@ struct action_node {
 	int os;
 };
 
+static rc_t processNode(xmlTextReaderPtr reader);
+
 static rc_t execCmdAction(const char *value) {
 	printf("%s: enter\n", __FUNCTION__);
 	rc_t task_rc = RC_FAILURE;
@@ -86,6 +88,53 @@ bail:
 	return task_rc;
 }
 
+static rc_t processSequenceNode(xmlTextReaderPtr reader) {
+  int ret;
+
+  printf("%s: enter\n", __FUNCTION__);
+  xmlNodePtr nodeP = xmlTextReaderCurrentNode(reader);
+  rc_t task_rc = RC_SUCCESS;
+  if (nodeP) {
+      printf("%s: seq address %p\n", __FUNCTION__, nodeP);
+      xmlDebugDumpNode(stdout, nodeP, -1);
+  } else {
+      printf("%s: no node type attr\n", __FUNCTION__);
+      goto bail;
+  }
+  if (!xmlTextReaderHasAttributes(reader) ) {
+      printf("%s: no attributes\n", __FUNCTION__);
+      goto bail;
+  }
+
+  char *action_value = xmlTextReaderReadString(reader);
+  if (!action_value) {
+      printf("%s: no action value\n", __FUNCTION__);
+      goto bail;
+  }
+  printf("%s: action value '%s'\n", __FUNCTION__, action_value);
+
+  char *action_type_name = xmlTextReaderGetAttribute(reader, "type");
+  if (!action_type_name) {
+      printf("%s: no action type attr\n", __FUNCTION__);
+      goto bail;
+  }
+  printf("%s: action type attr '%s'\n", __FUNCTION__, action_type_name);
+
+  ret = xmlTextReaderRead(reader);
+  while (ret == 1) {
+    task_rc = processNode(reader);
+    printf("%s: task_rc %d\n", __FUNCTION__, task_rc);
+    if (task_rc != RC_SUCCESS) {
+      goto bail;
+    }
+    ret = xmlTextReaderRead(reader);
+  }
+
+bail:
+  printf("%s: task_rc %d\n", __FUNCTION__, task_rc);
+  printf("%s: exit\n", __FUNCTION__);
+  return task_rc;
+}
 
 static rc_t processNode(xmlTextReaderPtr reader) {
     xmlChar *name, *value;
@@ -111,12 +160,18 @@ static rc_t processNode(xmlTextReaderPtr reader) {
     }
     printf("\n");
 
-    if ((xmlTextReaderNodeType(reader) == 1) && (strncmp("action", name, strlen(name)) == 0)) {
+  if ((xmlTextReaderNodeType(reader) == 1) && (strncmp("action", name, strlen(name)) == 0)) {
     	printf("%s: action node address '%p'\n", __FUNCTION__, xmlTextReaderCurrentNode(reader));
     	process_node = 1;
     	current_node = 1;
     	task_rc = processActionNode(reader);
     	goto bail;
+  } else if ((xmlTextReaderNodeType(reader) == 1) && (strncmp("sequence", name, strlen(name)) == 0)) {
+        printf("%s: sequence node address '%p'\n", __FUNCTION__, xmlTextReaderCurrentNode(reader));
+        process_node = 1;
+        current_node = 1;
+        task_rc = processSequenceNode(reader);
+        goto bail;
 	} else {
     	current_node = -1;
 	}
@@ -140,7 +195,7 @@ bail:
 int streamFile(char *filename) {
     xmlTextReaderPtr reader;
     int ret;
-	rc_t task_rc = RC_FAILURE;
+    rc_t task_rc = RC_FAILURE;
 
     reader = xmlNewTextReaderFilename(filename);
     if (reader == NULL) {
@@ -152,14 +207,12 @@ int streamFile(char *filename) {
     // process root as sequence
 	ret = xmlTextReaderRead(reader);
 	while (ret == 1) {
-		// FIXME has to return if any node after root has failure
 		task_rc = processNode(reader);
     printf("%s: task_rc %d\n", __FUNCTION__, task_rc);
 		if (task_rc != RC_SUCCESS) {
 		  goto bail;
 		}
 		ret = xmlTextReaderRead(reader);
-		printf("%s: task_rc %d\n", __FUNCTION__, task_rc);
 	}
 	if (ret != 0) {
 		printf("%s: failed to parse file %s\n", __FUNCTION__, filename);
@@ -176,7 +229,7 @@ bail:
 int main(int argc, char * argv[]) {
 	if (argc != 2) {
         printf("Provide file\n");
-        return RC_FAILURE;
+        return RC_ERROR;
 	}
 	return(streamFile(argv[1]));
 }

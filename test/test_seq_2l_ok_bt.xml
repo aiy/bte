@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+	<!--  execute children obey order return if failed
+	 return success if all succeed -->
+	<sequence>
+	  <action id='w_0_1l' type='cmd' os='unix'>
+      <exec>echo Hi one seq 1l</exec>
+    </action>
+    <sequence>
+      <action id='w_0_2l' type='cmd' os='unix'>
+        <exec>echo Hi one seq 2l</exec>
+      </action>
+    </sequence>
+	</sequence>
+</bt>

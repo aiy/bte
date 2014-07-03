@@ -49,3 +49,11 @@ if $BTE_CMD test_seq_one_fail_one_ok_bt.xml ; then
 	exit 1
 fi
 echo "ok seq one fail one ok action"
+
+echo "seq 2 levels ok action"
+if ! $BTE_CMD test_seq_2l_ok_bt.xml ; then
+	echo "failed: seq 2l two ok action"
+	exit 1
+fi
+echo "ok seq 2l two ok action"
+

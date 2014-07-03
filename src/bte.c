@@ -4,6 +4,7 @@
 #include <libxml/xmlreader.h>
 
 #include <string.h>
+#include <ctype.h> // for isspace
 
 static process_node = -1;
 
@@ -32,12 +33,33 @@ struct action_node {
 
 static rc_t processNode(xmlTextReaderPtr reader);
 
+char * _trimwhitespace(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace(*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace(*end)) end--;
+
+  // Write new null terminator
+  *(end+1) = 0;
+
+  return str;
+}
+
 static rc_t execCmdAction(const char *value) {
 	printf("%s: enter\n", __FUNCTION__);
 	rc_t task_rc = RC_FAILURE;
 	int rc = 1;
 	if (value) {
-    	printf("%s: action value '%s'\n", __FUNCTION__, value);
+	    value = _trimwhitespace(value);
+    	printf("%s: executing action '%s'\n", __FUNCTION__, value);
     	// TODO read stdout
     	dup2(1, 2);  //redirects stderr to stdout below this line.
     	rc = system(value);

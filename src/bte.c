@@ -5,8 +5,9 @@
 
 #include <string.h>
 #include <ctype.h> // for isspace
+#include <unistd.h> // for dup
 
-static process_node = -1;
+static int process_node = -1;
 
 enum  {
 	ACTION,
@@ -61,16 +62,16 @@ char * _trimwhitespace(char *str) {
   return str;
 }
 
-static rc_t execCmdAction(const char *value) {
+static rc_t execCmdAction(xmlChar *value) {
 	log_debug("%s: enter\n", __FUNCTION__);
 	rc_t task_rc = RC_FAILURE;
 	int rc = 1;
 	if (value) {
-	    value = _trimwhitespace(value);
+	   _trimwhitespace((char *) value);
     	log_debug("%s: executing action '%s'\n", __FUNCTION__, value);
     	// TODO read stdout
     	dup2(1, 2);  //redirects stderr to stdout below this line.
-    	rc = system(value);
+    	rc = system((const char *) value);
     	if (rc == 0) {
     		task_rc = RC_SUCCESS;
     	}
@@ -96,20 +97,20 @@ static rc_t processActionNode(xmlTextReaderPtr reader) {
     	goto bail;
 	}
 
-	char *action_value = xmlTextReaderReadString(reader);
+	xmlChar *action_value = xmlTextReaderReadString(reader);
 	if (!action_value) {
     	log_debug("%s: no action value\n", __FUNCTION__);
     	goto bail;
 	}
 	log_debug("%s: action value '%s'\n", __FUNCTION__, action_value);
 
-	char *action_type_name = xmlTextReaderGetAttribute(reader, "type");
+	xmlChar *action_type_name = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
 	if (!action_type_name) {
     	log_debug("%s: no action type attr\n", __FUNCTION__);
     	goto bail;
 	}
 	log_debug("%s: action type attr '%s'\n", __FUNCTION__, action_type_name);
-	if (strncmp("cmd", action_type_name, strlen("cmd")) == 0) {
+	if (strncmp("cmd", (const char *) action_type_name, strlen("cmd")) == 0) {
 		task_rc = execCmdAction(action_value);
 	}
 bail:
@@ -136,14 +137,14 @@ static rc_t processSequenceNode(xmlTextReaderPtr reader) {
       goto bail;
   }
 
-  char *action_value = xmlTextReaderReadString(reader);
+  xmlChar *action_value = xmlTextReaderReadString(reader);
   if (!action_value) {
       log_debug("%s: no action value\n", __FUNCTION__);
       goto bail;
   }
   log_debug("%s: action value '%s'\n", __FUNCTION__, action_value);
 
-  char *action_type_name = xmlTextReaderGetAttribute(reader, "type");
+  xmlChar *action_type_name = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
   if (!action_type_name) {
       log_debug("%s: no action type attr\n", __FUNCTION__);
       goto bail;
@@ -184,19 +185,19 @@ static rc_t processNode(xmlTextReaderPtr reader) {
             name,
             xmlTextReaderIsEmptyElement(reader));
     if (!value) {
-        if (strlen(value) > 0) {
+        if (strlen((const char *) value) > 0) {
         	//log_debug(" value '%s'", value);
         }
     }
     log_debug("\n");
 
-  if ((xmlTextReaderNodeType(reader) == 1) && (strncmp("action", name, strlen(name)) == 0)) {
+  if ((xmlTextReaderNodeType(reader) == 1) && (strncmp("action", (const char *) name, strlen((const char *) name)) == 0)) {
     	log_debug("%s: action node address '%p'\n", __FUNCTION__, xmlTextReaderCurrentNode(reader));
     	process_node = 1;
     	current_node = 1;
     	task_rc = processActionNode(reader);
     	goto bail;
-  } else if ((xmlTextReaderNodeType(reader) == 1) && (strncmp("sequence", name, strlen(name)) == 0)) {
+  } else if ((xmlTextReaderNodeType(reader) == 1) && (strncmp("sequence", (const char *) name, strlen((const char *) name)) == 0)) {
         log_debug("%s: sequence node address '%p'\n", __FUNCTION__, xmlTextReaderCurrentNode(reader));
         process_node = 1;
         current_node = 1;

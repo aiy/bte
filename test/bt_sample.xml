@@ -30,6 +30,6 @@
 	
 	<!--  -->
 	<condition>
-		<expr>//action/[@id='enter_0'] eq 'Configure CMS HA'</expr>
+		<expr>//action/[@id='enter_0'] eq 'Configure'</expr>
 	</condition>
 </bt>

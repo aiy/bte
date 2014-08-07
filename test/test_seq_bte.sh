@@ -8,50 +8,87 @@ fi
 echo "ok seq empty"
 
 echo "seq one ok action"
-if ! $BTE_CMD test_seq_one_ok_bt.xml ; then
+if ! r=`$BTE_CMD test_seq_one_ok_bt.xml 2>&1`; then
+	echo "failed: seq one ok"
+	exit 1
+fi
+m="Hi one seq"
+if [ "$r" != "$m" ]; then
 	echo "failed: seq one ok"
 	exit 1
 fi
 echo "ok seq one ok action"
 
 echo "seq one fail action"
-if $BTE_CMD test_seq_one_fail_bt.xml ; then
+if r=`$BTE_CMD test_seq_one_fail_bt.xml 2>&1` ; then
+	echo "failed: seq one fail action"
+	exit 1
+fi
+m="sh: 2: __fail_cmd__: not found"
+if [ "$r" != "$m" ]; then
 	echo "failed: seq one fail action"
 	exit 1
 fi
 echo "ok seq one fail action"
 
-
 echo "seq two ok action"
-if ! $BTE_CMD test_seq_two_ok_bt.xml ; then
+if ! r=`$BTE_CMD test_seq_two_ok_bt.xml 2>&1`; then
+	echo "failed: seq two ok action"
+	exit 1
+fi
+m="Hi one seq
+Hi two seq"
+if [ "$r" != "$m" ]; then
 	echo "failed: seq two ok action"
 	exit 1
 fi
 echo "ok seq two ok action"
 
 echo "seq two fail action"
-if $BTE_CMD test_seq_two_fail_bt.xml ; then
+if r=`$BTE_CMD test_seq_two_fail_bt.xml 2>&1`; then
+	echo "failed: seq two fail action"
+	exit 1
+fi
+m="sh: 2: __fail_cmd__0: not found"
+if [ "$r" != "$m" ]; then
 	echo "failed: seq two fail action"
 	exit 1
 fi
 echo "ok seq two fail action"
 
 echo "seq one ok one fail action"
-if $BTE_CMD test_seq_one_ok_one_fail_bt.xml ; then
+if r=`$BTE_CMD test_seq_one_ok_one_fail_bt.xml 2>&1`; then
+	echo "failed: seq one ok one fail action"
+	exit 1
+fi
+m="Hi one seq
+sh: 2: __fail_cmd__1: not found"
+if [ "$r" != "$m" ]; then
 	echo "failed: seq one ok one fail action"
 	exit 1
 fi
 echo "ok seq one ok one fail action"
 
 echo "seq one fail one ok action"
-if $BTE_CMD test_seq_one_fail_one_ok_bt.xml ; then
+if r=`$BTE_CMD test_seq_one_fail_one_ok_bt.xml 2>&1` ; then
+	echo "failed: seq one fail one ok action"
+	exit 1
+fi
+m="sh: 2: __fail_cmd__0: not found"
+if [ "$r" != "$m" ]; then
 	echo "failed: seq one fail one ok action"
 	exit 1
 fi
 echo "ok seq one fail one ok action"
 
 echo "seq 2 levels ok action"
-if ! $BTE_CMD test_seq_2l_ok_bt.xml ; then
+if ! r=`$BTE_CMD test_seq_2l_ok_bt.xml 2>&1`; then
+	echo "failed: seq 2l two ok action"
+	exit 1
+fi
+m="Hi one seq 1l
+Hi one seq 2l"
+if [ "$r" != "$m" ]; then
 	echo "failed: seq 2l two ok action"
 	exit 1
 fi

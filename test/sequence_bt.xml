@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bt>
-	<!--  execute children obey order return error if any failed
-	 return success if all succeed -->
+	 <!--  
+	 execute children obey order 
+	 return error if any failed and stop processing the sibling
+	 return success if all succeed 
+	 -->
 	 <!-- 
 If a child behavior succeeds, the sequence continues its execution.
 If a child behavior fails cleanly, then the sequence code backtracks to find other candidate behaviors.

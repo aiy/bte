@@ -1,5 +1,19 @@
 BTE_CMD=../Debug/bte
 
+echo "bad xml"
+if $BTE_CMD test_bad_xml.xml ; then
+	echo "failed: bad xml"
+	exit 1
+fi
+echo "ok bad xml"
+
+echo "not bt"
+if $BTE_CMD test_not_bt.xml ; then
+	echo "failed: not bt"
+	exit 1
+fi
+echo "ok not bt"
+
 echo "empty"
 if ! $BTE_CMD test_empty_bt.xml ; then
 	echo "failed: empty"
@@ -14,7 +28,7 @@ if ! r=`$BTE_CMD test_one_ok_action_bt.xml 2>&1` ; then
 fi
 m="Hi"
 if [ "$r" != "$m" ]; then
-	echo "failed: one ok action"
+	echo "failed: output of one ok action"
 	exit 1
 fi
 echo "ok one ok action"
@@ -24,9 +38,9 @@ if r=`$BTE_CMD test_one_fail_action_bt.xml 2>&1` ; then
 	echo "failed: one fail action"
 	exit 1
 fi
-m="sh: 2: __fail_cmd__: not found"
+m="sh: 1: __fail_cmd__: not found"
 if [ "$r" != "$m" ]; then
-	echo "failed: one fail action"
+	echo "failed: output of one fail action"
 	exit 1
 fi
 echo "ok one fail action"
@@ -39,7 +53,7 @@ fi
 m="Hi
 Hi 1"
 if [ "$r" != "$m" ]; then
-	echo "failed: two ok action"
+	echo "failed: output of two ok action"
 	exit 1
 fi
 echo "ok two ok action"
@@ -50,9 +64,9 @@ if r=`$BTE_CMD test_two_fail_action_bt.xml 2>&1`; then
 	exit 1
 fi
 echo "ok two fail action"
-m="sh: 2: __fail_cmd__: not found"
+m="sh: 1: __fail_cmd__: not found"
 if [ "$r" != "$m" ]; then
-	echo "failed: two fail action"
+	echo "failed: output of two fail action"
 	exit 1
 fi
 
@@ -62,9 +76,9 @@ if r=`$BTE_CMD test_one_ok_one_fail_action_bt.xml 2>&1` ; then
 	exit 1
 fi
 m="Hi
-sh: 2: __fail_cmd__: not found"
+sh: 1: __fail_cmd__: not found"
 if [ "$r" != "$m" ]; then
-	echo "failed: one ok one fail action"
+	echo "failed: output of one ok one fail action"
 	exit 1
 fi
 echo "ok one ok one fail action"
@@ -74,9 +88,9 @@ if r=`$BTE_CMD test_one_fail_one_ok_action_bt.xml 2>&1` ; then
 	echo "failed: one fail one ok action"
 	exit 1
 fi
-m="sh: 2: __fail_cmd__: not found"
+m="sh: 1: __fail_cmd__: not found"
 if [ "$r" != "$m" ]; then
-	echo "failed: one fail one ok action"
+	echo "failed: output of one fail one ok action"
 	exit 1
 fi
 echo "ok one fail one ok action"

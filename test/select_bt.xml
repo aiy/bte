@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+	<!--  execute children obey order 
+	return success if some succeed and stop processing the rest sibling
+	return failed if none succeed -->
+	<!-- 
+If a child behavior succeeds, the selector can terminate successfully also.
+In case a child behavior fails cleanly, the selector may backtrack and try the next child in order.
+When a critical error occurs, the selector should bail out with the same error.	
+	 -->
+	<select name="behave">
+		<node name="do1"></node>
+		<node name="do2"></node>
+		<node name="do3"></node>
+	</select>
+</bt>

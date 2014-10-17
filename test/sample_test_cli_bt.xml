@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+	<license id="restricted_cmd_license" type="feature">rest-cmd-lic</license>
+	<license id="prd_license" type="feature">prd1-lic</license>
+	<manuf>
+		<image_url id="image_url1">http://10.2.4.98/~usr1/image.img</image_url>
+	</manuf>
+	<appl>
+		<product>prd1</product>
+		<model>mod1</model>
+		<hostname id="h1_id">h1</hostname>
+		<terminal_server addr="172.16.3.34" port="2012" user_name="admin" user_pwd="admin123"/>
+		<manuf>
+			<image_url><xref href="#image_url1"/></image_url>
+		</manuf>
+		<conf_cmd>
+			<cmd>hostname <xref href="#h1_id"/></cmd>
+		</conf_cmd>
+	</appl>
+</bt>

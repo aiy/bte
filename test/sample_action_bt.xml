@@ -28,8 +28,8 @@
 		<match></match>
 	</action>
 	
-	<!--  -->
-	<condition>
-		<expr>//action/[@id='enter_0'] eq 'Configure'</expr>
-	</condition>
+	<action id='w_0' type='cmd' os='unix'>w</action>
+  <action id='bad_1' type='cmd' os='unix'>bad_command</action>
+  <action id='w_1' type='cmd' os='unix'>/usr/bin/w -h</action>
+	
 </bt>

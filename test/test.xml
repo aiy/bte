@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<bt>
-	<action id='w_0' type='cmd' os='unix'>w</action>
-	<action id='bad_1' type='cmd' os='unix'>bad_command</action>
-	<action id='w_1' type='cmd' os='unix'>/usr/bin/w -h</action>
-</bt>
-	<!--execute locally. need return code only-->
-	<!--execute node and return execution result code-->

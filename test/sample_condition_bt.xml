@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+	<condition>
+		<expr>//action/[@id='enter_0'] eq 'Configure'</expr>
+	</condition>
+</bt>

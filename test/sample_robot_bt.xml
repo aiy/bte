@@ -1,0 +1,17 @@
+<bt>
+	<sequence id='behave'>
+		<select id='stay_healthy'>
+			<action id='is_battery_healthy'></action>
+			<sequence id='recharge'>
+				<action id='navigate_to_doc'></action>
+        <action id='doc'></action>
+				<action id='charge'></action>
+			</sequence>
+		</select>
+		<sequence id='patrol'>
+			<action id='navigate_to_pos1'></action>
+			<action id='navigate_to_pos2'></action>
+			<action id='navigate_to_pos3'></action>
+		</sequence>
+	</sequence>
+</bt>

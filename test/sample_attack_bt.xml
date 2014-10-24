@@ -1,0 +1,11 @@
+<bt>
+	<select>
+		<action id='attack'></action>
+		<action id='provoke'></action>
+		<sequence id='observe'>
+			<action id='visiable'></action>
+			<action id='turn_left'></action>
+			<action id='run_away'></action>
+		</sequence>
+	</select>
+</bt>

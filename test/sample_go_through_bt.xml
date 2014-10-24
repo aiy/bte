@@ -1,0 +1,9 @@
+<bt>
+	<select>
+		<action id='opened_door'></action>
+		<sequence id='find_open_door'>
+			<action id='get_close'></action>
+			<action id='open_door'></action>
+		</sequence>
+	</select>
+</bt>

@@ -31,5 +31,40 @@
 	<action id='w_0' type='cmd' os='unix'>w</action>
   <action id='bad_1' type='cmd' os='unix'>bad_command</action>
   <action id='w_1' type='cmd' os='unix'>/usr/bin/w -h</action>
+
+  <action id='open_file1' fd='file1_fd'>
+    <open fd='file1_fd'>/home/usr1/file1.txt</open> <!-- open file, return file decriptor -->
+  </action>
+
+  <action id='read_file1'>
+    <read fd='file1_fd' data='file1_out'></read> <!-- read file -->
+  </action>
+
+  <action id='write_stdout'>
+    <write fd='STDOUT' data='file1_buff'></write> <!-- write data to file -->
+  </action>
+
+  <action id='write_stdout'>
+    <write_line fd='STDOUT' data='file1_buff'></write_line> <!-- write one line of data to file -->
+  </action>
+
+  <action id='close_file1' fd='file1_fd'>
+    <close fd='file1_fd'></close> <!-- close file -->
+  </action>
+
+  <action id='match_d1'>
+    <match data='file1_buff'>.[0-9]match string</match>
+  </action>
+
+	<select>
+		<action id='match_d1'>
+			<match data='file1_buff'>.[0-9]match string1</match>
+		</action>
+    <action id='match_d1'>
+      <match data='file1_buff'>.[0-9]match string2</match>
+    </action>
+	</select>
+  
+  
 	
 </bt>

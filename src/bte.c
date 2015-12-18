@@ -1,3 +1,7 @@
+/*
+http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_and_Control)
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -25,6 +29,7 @@ typedef enum os_type os_t;
 enum rc_type {
   RC_SUCCESS, // clean success
   RC_FAILURE, // clean failure
+  RC_RUNNING, // running
   RC_ERROR, // unexpected failure
 };
 

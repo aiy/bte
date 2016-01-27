@@ -4,16 +4,14 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <libxml/xmlreader.h>
-
-
-#include <libxml/parser.h>
-#include <libxml/tree.h>
-
 #include <string.h>
 #include <ctype.h> // for isspace
 #include <unistd.h> // for dup
+
+#include <libxml/debugXML.h>
+#include <libxml/xmlreader.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
 
 static int g_debug = 0;
 
@@ -26,6 +24,7 @@ enum os_type {
 };
 typedef enum os_type os_t;
 
+// return code 
 enum rc_type {
   RC_SUCCESS, // clean success
   RC_FAILURE, // clean failure
@@ -41,10 +40,15 @@ struct action_node {
   int os;
 };
 
-static rc_t processRootNode(xmlNode *node);
+static rc_t processFile(const char *filename);
+static rc_t processRootNode(xmlNodePtr node);
 static rc_t processNode(xmlNodePtr node);
 static rc_t processSequenceNode(xmlNodePtr node);
 static rc_t processSelectNode(xmlNodePtr node);
+static rc_t processActionNode(xmlNodePtr node);
+
+// system specific
+static rc_t execCmdAction(xmlChar *value);
 
 #define DEBUG 0
 #if 0
@@ -282,7 +286,7 @@ bail:
   return task_rc;
 }
 
-int processFile(char *filename) {
+rc_t processFile(const char *filename) {
   log_debug("%s: enter\n", __FUNCTION__);
 
   xmlDocPtr doc = NULL;

@@ -59,7 +59,8 @@ send_fd(int fd, int fd_to_send)
 #endif
 
 
-
+/*
 int main() {
     return(0);
 }
+*/

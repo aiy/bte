@@ -31,7 +31,6 @@ $(TARGET): $(OBJ)
 test: $(TARGET)
 	@echo testing
 	sh test_bte.sh
-	#for t in $(TARGET); do ./$$t; done ; true
 	
 clean:
 	@echo cleaning

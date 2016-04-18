@@ -1,4 +1,4 @@
-BTE_CMD=../Debug/bte
+BTE_CMD=../src/bte
 
 echo "seq empty"
 if ! $BTE_CMD test_seq_empty_bt.xml ; then

@@ -1,4 +1,4 @@
-BTE_CMD=../Debug/bte
+BTE_CMD=../src/bte
 
 echo "sel empty"
 if ! $BTE_CMD test_sel_empty_bt.xml ; then

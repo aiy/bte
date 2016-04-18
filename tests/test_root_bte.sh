@@ -1,4 +1,4 @@
-BTE_CMD=../Debug/bte
+BTE_CMD=../src/bte
 
 echo "bad xml"
 if $BTE_CMD test_bad_xml.xml ; then

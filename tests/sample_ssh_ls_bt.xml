@@ -5,7 +5,7 @@
 	
 		<!-- ssh connect to host -->
 		<action id='connect_ssh1'>
-			<open fd='ssh1_fd'>ssh user1@localhost</open>
+			<open fd='ssh1_fd'>ssh://user1@localhost</open>
 		</action>
 		
 		<!-- login to host -->

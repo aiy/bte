@@ -31,6 +31,7 @@
 	<action id='w_0' type='cmd' os='unix'>w</action>
   <action id='bad_1' type='cmd' os='unix'>bad_command</action>
   <action id='w_1' type='cmd' os='unix'>/usr/bin/w -h</action>
+  <action id='w_1' type='exec' os='unix'>/usr/bin/w -h</action>
 
   <action id='open_file1' fd='file1_fd'>
     <open fd='file1_fd'>/home/usr1/file1.txt</open> <!-- open file, return file decriptor -->

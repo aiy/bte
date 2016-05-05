@@ -16,7 +16,7 @@ else
   export LD_LIBRARY_PATH := ../src
 endif
 
-.PHONY: all clean test $(TARGET) $(OBJ)
+.PHONY: all clean check test $(TARGET) $(OBJ)
 
 all: $(TARGET)
 
@@ -28,7 +28,7 @@ $(TARGET): $(OBJ)
 	@echo building targets
 	$(CC) $@.o $(LDFLAGS) -o $@
 
-test: $(TARGET)
+check test: $(TARGET)
 	@echo testing
 	sh test_bte.sh
 	

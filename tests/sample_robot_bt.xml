@@ -1,12 +1,13 @@
 <bt>
 	<sequence id='behave'>
 		<select id='stay_healthy'>
-			<action id='is_battery_healthy'></action>
-			<sequence id='recharge'>
-				<action id='navigate_to_doc'></action>
-        <action id='doc'></action>
-				<action id='charge'></action>
-			</sequence>
+			<condition id='is_battery_healthy'>
+				<sequence id='recharge'>
+					<action id='navigate_to_doc'></action>
+					<action id='doc'></action>
+					<action id='charge'></action>
+				</sequence>
+			</condition>
 		</select>
 		<sequence id='patrol'>
 			<action id='navigate_to_pos1'></action>

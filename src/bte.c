@@ -37,9 +37,23 @@ enum rc_type {
   RC_FAILURE, // clean failure
   RC_RUNNING, // running
   RC_ERROR, // unexpected failure
+  RC_UNKNOWN, // unknown code
 };
-
 typedef enum rc_type rc_t;
+
+struct _return_code {
+  const int code;
+  const char *str;
+};
+typedef struct _return_code rcs_t;
+
+const rcs_t rcs_str_mapping[] = {
+    {RC_SUCCESS, "RC_SUCCESS"},
+    {RC_FAILURE, "RC_FAILURE"},
+    {RC_RUNNING, "RC_RUNNING"},
+    {RC_ERROR, "RC_ERROR"},
+    {RC_UNKNOWN, NULL},
+};
 
 struct action_node {
   char *value;
@@ -66,6 +80,16 @@ static rc_t processActionNode(xmlNodePtr node);
 // system specific
 static rc_t oldexecActionCmd(xmlChar *value);
 static rc_t processActionExec(xmlNodePtr node);
+
+static const char * rc2rstr(const int rc) {
+  int i = 0;
+  for (; rcs_str_mapping[i].code != RC_UNKNOWN; ++i) {
+    if(rcs_str_mapping[i].code == rc) {
+      return(rcs_str_mapping[i].str);
+    }
+  }
+  return(NULL);
+}
 
 static char * _gen_node_id(void) {
   char *id_str = NULL;
@@ -174,13 +198,15 @@ static rc_t processActionExec(xmlNodePtr node) {
   int rc = 1;
   xmlChar *node_id = NULL;
   xmlChar *action_value = NULL;
+  char exec_path[255] = "";
 	xmlChar *action_state = NULL;
 	char exec_out_buff[255] = "";
   fp_table_t *fp_table_item = NULL;
   fp_table_t *fp_table_item_tmp = NULL;
+  int c = 0;
 
   node_id = xmlGetProp(node, "id");
-	if (action_state && (strlen(action_state) > 0)) {
+	if (node_id && (strlen(node_id) > 0)) {
 		ullog_debug("node id '%s'", node_id);
 	} else {
 		ullog_debug("generating node id");
@@ -212,23 +238,32 @@ static rc_t processActionExec(xmlNodePtr node) {
 				task_rc = RC_ERROR;
 				goto bail;
 			}
-   		ullog_debug("executing action '%s'", action_value);
-    	dup2(1, 2);  //redirects stderr to stdout below this line.
+
+   		ullog_debug("create store fp item");
       fp_table_item = (fp_table_t*)malloc(sizeof(fp_table_t));
-      strncpy(fp_table_item->id, node_id, 255);
       if(!fp_table_item) {
 				ullog_err("cannot create fp table item");
 				task_rc = RC_ERROR;
 				goto bail;
       }
-    	if(!(fp_table_item->fp = popen(action_value, "r"))) {
+
+   		ullog_debug("action value '%s'", action_value);
+      strncat(exec_path, action_value, sizeof(exec_path)); 
+      strncat(exec_path, " 2>&1", sizeof(exec_path)); 
+   		ullog_debug("executing action '%s'", exec_path);
+    	if(!(fp_table_item->fp = popen(exec_path, "r"))) {
 				ullog_err("cannot execute command '%s'", action_value);
 				task_rc = RC_ERROR;
 				goto bail;
 			}
-   		ullog_debug("add id '%s'", fp_table_item->id);
-   		ullog_debug("add fp '%p'", fp_table_item->fp);
+
+   		ullog_debug("start store fp in fp table");
+      strncpy(fp_table_item->id, node_id, 255);
+   		ullog_debug("id '%s'", fp_table_item->id);
+   		ullog_debug("fp '%p'", fp_table_item->fp);
       HASH_ADD_STR(fp_table, id, fp_table_item);
+   		ullog_debug("done store fp in fp table");
+
   	} else {
 			ullog_err("cannot read command value or it is empty");
 			task_rc = RC_ERROR;
@@ -236,12 +271,14 @@ static rc_t processActionExec(xmlNodePtr node) {
 		}
 	}
 
+#if 0
+  // list fps in table for debugging only
   HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
    	ullog_debug("id '%s'", fp_table_item->id);
    	ullog_debug("fp '%p'", fp_table_item->fp);
   }
+#endif
 
-	ullog_debug("start reading exec output");
   if(!fp_table_item) {
     HASH_FIND_STR(fp_table, node_id, fp_table_item);
   }
@@ -251,13 +288,19 @@ static rc_t processActionExec(xmlNodePtr node) {
 		goto bail;
   }
 
+	ullog_debug("start reading exec output");
 	if(fgets(exec_out_buff, 255, fp_table_item->fp) == NULL) {
-		if(!feof(fp_table_item->fp)) {
+		if(!feof(fp_table_item->fp) || ferror(fp_table_item->fp)) {
 			ullog_err("cannot read output of command '%s'", action_value);
 			task_rc = RC_ERROR;
 			goto bail;
 		}
 	}
+	ullog_debug("done reading exec output");
+
+  // check eof
+  c = getc(fp_table_item->fp); 
+  ungetc(c, fp_table_item->fp); 
 	if(feof(fp_table_item->fp)) {
    	ullog_debug("exec action output eof");
 		if(pclose(fp_table_item->fp) == 0) {
@@ -286,7 +329,7 @@ static rc_t processActionExec(xmlNodePtr node) {
 
 
 bail:
-  ullog_debug("task_rc %d", task_rc);
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
   if (node_id) xmlFree(node_id);
   if (action_value) xmlFree(action_value);
   if (action_state) xmlFree(action_state);
@@ -299,7 +342,7 @@ bail:
   }
 
 	ullog_debug("exit");
-  return task_rc;
+  return(task_rc);
 }
 
 static rc_t processActionNode(xmlNodePtr node) {
@@ -328,10 +371,10 @@ static rc_t processActionNode(xmlNodePtr node) {
 
 bail:
 
-  ullog_debug("task_rc %d", task_rc);
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
-  return task_rc;
+  return(task_rc);
 }
 
 static rc_t processSequenceNode(xmlNodePtr node) {
@@ -354,10 +397,10 @@ static rc_t processSequenceNode(xmlNodePtr node) {
 
 bail:
 
-  ullog_debug("task_rc %d", task_rc);
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
-  return task_rc;
+  return(task_rc);
 }
 
 static rc_t processSelectNode(xmlNodePtr node) {
@@ -380,10 +423,10 @@ static rc_t processSelectNode(xmlNodePtr node) {
 
 bail:
 
-  ullog_debug("task_rc %d", task_rc);
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
-  return task_rc;
+  return(task_rc);
 }
 
 static rc_t processNode(xmlNodePtr node) {
@@ -411,10 +454,10 @@ static rc_t processNode(xmlNodePtr node) {
 
 bail:
 
-  ullog_debug("task_rc %d", task_rc);
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
-  return task_rc;
+  return(task_rc);
 }
 
 static rc_t processRootNode(xmlNodePtr node) {
@@ -444,10 +487,10 @@ static rc_t processRootNode(xmlNodePtr node) {
 
 bail:
 
-  ullog_debug("task_rc %d", task_rc);
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
-  return task_rc;
+  return(task_rc);
 }
 
 rc_t processFile(const char *filename) {
@@ -479,18 +522,18 @@ rc_t processFile(const char *filename) {
 	do {
 		ullog_debug("start run iteration %d", run_i);
 		task_rc = processRootNode(rootNode);
-		ullog_debug("done run iteration %d tast_rc %d", run_i, task_rc);
+		ullog_debug("done run iteration %d task_rc %s", run_i, rc2rstr(task_rc));
 		++run_i;
 	} while (task_rc == RC_RUNNING);
-  ullog_debug("done processRootNode rc %d", task_rc);
+  ullog_debug("done processRootNode rc %s", rc2rstr(task_rc));
 
 bail:
   if (doc) xmlFreeDoc(doc);
   xmlCleanupParser();
-  ullog_debug("task_rc %d", task_rc);
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
-  return task_rc;
+  return(task_rc);
 }
 
 int main(int argc, char *argv[]) {
@@ -514,15 +557,15 @@ int main(int argc, char *argv[]) {
 
   ullog_debug("start processFile");
   task_rc = processFile(argv[1]);
-  ullog_debug("done processFile rc %d", task_rc);
+  ullog_debug("done processFile rc %s", rc2rstr(task_rc));
 
 bail:
 
-  ullog_debug("rc %d", task_rc);
+  ullog_debug("rc %s", rc2rstr(task_rc));
   ullog_debug("exit bte");
 
 	ullog_deinit();
-  return task_rc;
+  return(task_rc);
 }
 
 // EOF

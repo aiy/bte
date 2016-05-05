@@ -75,4 +75,17 @@ if [ "$r" != "$m" ]; then
 fi
 echo "ok one fail one ok action"
 
+echo "one big output action"
+if r=`$BTE_CMD test_one_big_output_action_bt.xml > out 2>&1` ; then
+  rm -f out
+	echo "failed: one big action"
+	exit 1
+fi
+if test $(stat -c%s out) -lt 255 ; then
+  rm -f out
+	echo "failed: one big action"
+	exit 1
+fi
+rm -f out
+echo "ok one big action"
 

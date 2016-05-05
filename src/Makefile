@@ -18,10 +18,10 @@ LIBS=`xml2-config --libs`
 all: $(BIN_TARGET)
 
 .c.o:
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -g -c $< -o $@
 
 $(BIN_TARGET): $(OBJ)
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) -g -o $@ $^ $(LIBS)
 
 clean:
 	@find . \( -name \*.o -o -name \*.a -o -name \*.so \) -exec rm {} \;

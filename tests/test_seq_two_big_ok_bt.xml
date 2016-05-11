@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+
+  <sequence>
+    <action id='w_0' type='cmd' os='unix'>
+		  <exec>curl -OL https://github.com/torvalds/linux/archive/master.zip</exec>
+    </action>
+    <action id='w_1' type='cmd' os='unix'>
+		  <exec>curl -OL https://github.com/contiki-os/contiki/archive/release-3-0.zip</exec>
+    </action>
+  </sequence>
+
+</bt>

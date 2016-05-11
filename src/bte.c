@@ -7,11 +7,12 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 #include <string.h>
 #include <ctype.h> // for isspace
 #include <unistd.h> // for dup
+#include <time.h>
 
-#include <libxml/debugXML.h>
 #include <libxml/xmlreader.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <libxml/debugXML.h>
 
 #include "uthash.h"
 
@@ -20,7 +21,7 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 #define ULLOG_LEVEL ULLOG_NOTICE
 //#define ULLOG_LEVEL ULLOG_DEBUG
 #include "ullog.h"
-static g_debug = 0;
+static int g_debug = 0;
 
 enum {
   ACTION,
@@ -62,7 +63,7 @@ struct action_node {
 };
 
 struct _fp_table {
-  char id[255];
+  const char *id;
   FILE *fp;
   UT_hash_handle hh; /* makes this structure hashable */
 };
@@ -78,7 +79,7 @@ static rc_t processSelectNode(xmlNodePtr node);
 static rc_t processActionNode(xmlNodePtr node);
 
 // system specific
-static rc_t oldexecActionCmd(xmlChar *value);
+//static rc_t oldexecActionCmd(xmlChar *value);
 static rc_t processActionExec(xmlNodePtr node);
 
 static const char * rc2rstr(const int rc) {
@@ -91,16 +92,19 @@ static const char * rc2rstr(const int rc) {
   return(NULL);
 }
 
+static int rand_init = 0;
 static char * _gen_node_id(void) {
-  char *id_str = NULL;
-  if((id_str = malloc(255)) == NULL) {
-    return(NULL);
+  char *id_str = NULL; 
+  if((id_str = malloc(255)) == NULL) { 
+    return(NULL); 
   }
-  srand(time(NULL));
+  if(!rand_init) {
+    rand_init = 1;
+    srand(time(NULL));
+  }
   if (sprintf(id_str, "%d", rand()) == -1) {
     return(NULL);
   }
-
   return(id_str);
 }
 
@@ -126,9 +130,9 @@ static char * _trimwhitespace(char *str) {
 }
 
 static void _xmlDump(xmlNode *node) {
-  ullog_debug("enter");
 
   if (g_debug) {
+    ullog_debug("enter");
     /*
     xmlChar *name, *value;
 
@@ -158,11 +162,12 @@ static void _xmlDump(xmlNode *node) {
     if (value)
       xmlFree(value);
       */
+    ullog_debug("exit");
   }
 
-  ullog_debug("exit");
 }
 
+#if 0
 static rc_t oldexecActionCmd(xmlChar *value) {
 	ullog_debug("enter");
 
@@ -190,50 +195,57 @@ bail:
 	ullog_debug("exit");
   return task_rc;
 }
+#endif
 
 static rc_t processActionExec(xmlNodePtr node) {
 	ullog_debug("enter");
 
   rc_t task_rc = RC_FAILURE;
-  int rc = 1;
   xmlChar *node_id = NULL;
   xmlChar *action_value = NULL;
   char exec_path[255] = "";
 	xmlChar *action_state = NULL;
 	char exec_out_buff[255] = "";
   fp_table_t *fp_table_item = NULL;
-  fp_table_t *fp_table_item_tmp = NULL;
+  // enable to print hash
+  // fp_table_t *fp_table_item_tmp = NULL;
   int c = 0;
 
-  node_id = xmlGetProp(node, "id");
-	if (node_id && (strlen(node_id) > 0)) {
+  node_id = xmlGetProp(node, (const xmlChar *) "id");
+	if (node_id && (strlen((const char *) node_id) > 0)) {
 		ullog_debug("node id '%s'", node_id);
 	} else {
 		ullog_debug("generating node id");
-		node_id = _gen_node_id();
+	  node_id = (xmlChar *) _gen_node_id();
 		if(!node_id) {
 			ullog_err("cannot generate node id");
 			task_rc = RC_ERROR;
 			goto bail;
 		}
-		ullog_debug("node id '%s'", node_id);
-		if(!xmlNewProp(node, "id", node_id)) {
+		if(!xmlNewProp(node,  (const xmlChar *) "id", node_id)) {
 			ullog_err("cannot write node id to tree");
 			task_rc = RC_ERROR;
 			goto bail;
 		}
+		ullog_debug("new generated node id '%s'", node_id);
 	}
 
-  action_state = xmlGetProp(node, "_state_");
-	if (action_state && (strlen(action_state) > 0)) {
-		ullog_debug("action state '%s'", action_state);
+  action_state = xmlGetProp(node,  (const xmlChar *) "_state_");
+	ullog_debug("action state '%s'", action_state);
+	if (action_state && 
+    (strncmp((const char *) action_state, "running", strlen("running")) == 0)) {
 		ullog_debug("action is running");
+	} else if (action_state && 
+    (strncmp((const char *) action_state, "success", strlen("success")) == 0)) {
+		ullog_debug("action is success");
+	  task_rc = RC_SUCCESS;
+		goto bail;
 	} else {
-		ullog_debug("action is not running");
+		ullog_debug("action is not set");
 		action_value = xmlNodeGetContent(node);
   	if (action_value) {
     	_trimwhitespace((char *) action_value);
-			if (strlen(action_value) == 0) {
+			if (strlen((const char *) action_value) == 0) {
 				ullog_err("cannot read command value or it is empty");
 				task_rc = RC_ERROR;
 				goto bail;
@@ -248,7 +260,7 @@ static rc_t processActionExec(xmlNodePtr node) {
       }
 
    		ullog_debug("action value '%s'", action_value);
-      strncat(exec_path, action_value, sizeof(exec_path)); 
+      strncat(exec_path, (const char *) action_value, sizeof(exec_path)); 
       strncat(exec_path, " 2>&1", sizeof(exec_path)); 
    		ullog_debug("executing action '%s'", exec_path);
     	if(!(fp_table_item->fp = popen(exec_path, "r"))) {
@@ -258,10 +270,11 @@ static rc_t processActionExec(xmlNodePtr node) {
 			}
 
    		ullog_debug("start store fp in fp table");
-      strncpy(fp_table_item->id, node_id, 255);
+      fp_table_item->id = (const char *) node_id;
    		ullog_debug("id '%s'", fp_table_item->id);
    		ullog_debug("fp '%p'", fp_table_item->fp);
-      HASH_ADD_STR(fp_table, id, fp_table_item);
+      HASH_ADD_KEYPTR(hh, fp_table, 
+        fp_table_item->id, strlen(fp_table_item->id), fp_table_item);
    		ullog_debug("done store fp in fp table");
 
   	} else {
@@ -279,9 +292,14 @@ static rc_t processActionExec(xmlNodePtr node) {
   }
 #endif
 
+
   if(!fp_table_item) {
-    HASH_FIND_STR(fp_table, node_id, fp_table_item);
+    ullog_debug("search fp_table_item");
+    HASH_FIND_STR(fp_table, (const char *) node_id, fp_table_item);
   }
+  ullog_debug("node_id '%p'", node_id);
+  ullog_debug("fp_table '%p'", fp_table);
+  ullog_debug("fp_table_item '%p'", fp_table_item);
   if(!fp_table_item) {
 		ullog_err("cannot find open fp for node id '%s'", node_id);
 		task_rc = RC_ERROR;
@@ -303,6 +321,7 @@ static rc_t processActionExec(xmlNodePtr node) {
   ungetc(c, fp_table_item->fp); 
 	if(feof(fp_table_item->fp)) {
    	ullog_debug("exec action output eof");
+   	ullog_debug("closing fp '%p'", fp_table_item->fp);
 		if(pclose(fp_table_item->fp) == 0) {
 			task_rc = RC_SUCCESS;
     } else {
@@ -310,7 +329,7 @@ static rc_t processActionExec(xmlNodePtr node) {
     }
     HASH_DEL(fp_table, fp_table_item);
     free(fp_table_item);
-		if(!xmlNewProp(node, "_state_", "")) {
+		if(!xmlSetProp(node, (const xmlChar *) "_state_", (const xmlChar *) "success")) {
 			ullog_err("cannot write node state to tree");
 			task_rc = RC_ERROR;
 			goto bail;
@@ -318,11 +337,19 @@ static rc_t processActionExec(xmlNodePtr node) {
 	} else {
    	ullog_debug("no exec action output eof");
 		task_rc = RC_RUNNING;
-		if(!xmlNewProp(node, "_state_", "running")) {
-			ullog_err("cannot write node state to tree");
-			task_rc = RC_ERROR;
-			goto bail;
-		}
+    if (action_state) {
+      if(!xmlSetProp(node, (const xmlChar *) "_state_", (const xmlChar *) "running")) {
+        ullog_err("cannot update node state to value 'running'");
+        task_rc = RC_ERROR;
+        goto bail;
+      }
+    } else {
+      if(!xmlNewProp(node, (const xmlChar *) "_state_",(const xmlChar *)  "running")) {
+        ullog_err("cannot write node state value 'running'");
+        task_rc = RC_ERROR;
+        goto bail;
+      }
+    }
   }
  	ullog_debug("current exec output '%s'", exec_out_buff);
 	printf("%s", exec_out_buff);
@@ -330,7 +357,7 @@ static rc_t processActionExec(xmlNodePtr node) {
 
 bail:
   ullog_debug("task_rc %s", rc2rstr(task_rc));
-  if (node_id) xmlFree(node_id);
+  //if (node_id) xmlFree(node_id);
   if (action_value) xmlFree(action_value);
   if (action_state) xmlFree(action_state);
   if(fp_table && fp_table_item) {
@@ -554,6 +581,7 @@ int main(int argc, char *argv[]) {
     }
   }
   ullog_debug("done process cli");
+
 
   ullog_debug("start processFile");
   task_rc = processFile(argv[1]);

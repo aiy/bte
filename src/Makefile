@@ -10,8 +10,8 @@ endif
 SRC = bte.c
 OBJ = $(SRC:.c=.o)
 
-CFLAGS=`xml2-config --cflags`
-LIBS=`xml2-config --libs`
+CFLAGS += `xml2-config --cflags`
+LIBS += `xml2-config --libs`
 
 .PHONY: all clean
 

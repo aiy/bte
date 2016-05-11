@@ -1,7 +1,7 @@
 OS := $(shell uname)
 
 CC=gcc
-CFLAGS = -Wall -Werror -fPIC
+CFLAGS = -Wall -Werror -Wfatal-errors -fPIC
 
 VER = 1
 

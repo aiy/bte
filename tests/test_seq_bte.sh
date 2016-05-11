@@ -81,6 +81,15 @@ if [ "$r" != "$m" ]; then
 fi
 echo "ok seq one fail one ok action"
 
+echo "seq two big ok action"
+if ! r=`$BTE_CMD test_seq_two_big_ok_bt.xml 2>&1`; then
+	echo "failed: seq two big ok action"
+  rm -f *.zip
+	exit 1
+fi
+rm -f *.zip
+echo "ok seq two big ok action"
+
 echo "seq 2 levels ok action"
 if ! r=`$BTE_CMD test_seq_2l_ok_bt.xml 2>&1`; then
 	echo "failed: seq 2l two ok action"

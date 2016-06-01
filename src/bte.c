@@ -17,6 +17,7 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 #include "uthash.h"
 
 #define ULLOG_DEST (ULLOG_DEST_STDOUT)
+//#define ULLOG_DEST (ULLOG_DEST_STDOUT | ULLOG_DEST_STDERR)
 //#define ULLOG_DEST (ULLOG_DEST_STDOUT | ULLOG_DEST_STDERR | ULLOG_DEST_SYSLOG)
 #define ULLOG_LEVEL ULLOG_NOTICE
 //#define ULLOG_LEVEL ULLOG_DEBUG
@@ -74,12 +75,13 @@ static fp_table_t *fp_table = NULL;
 static rc_t processFile(const char *filename);
 static rc_t processRootNode(xmlNodePtr node);
 static rc_t processNode(xmlNodePtr node);
+static rc_t processDecoratorNode(xmlNodePtr node);
+static rc_t processDecoratorSucceederNode(xmlNodePtr node);
 static rc_t processSequenceNode(xmlNodePtr node);
 static rc_t processSelectNode(xmlNodePtr node);
-static rc_t processActionNode(xmlNodePtr node);
+static rc_t processActionLeaf(xmlNodePtr node);
 
 // system specific
-//static rc_t oldexecActionCmd(xmlChar *value);
 static rc_t processActionExec(xmlNodePtr node);
 
 static const char * rc2rstr(const int rc) {
@@ -129,7 +131,14 @@ static char * _trimwhitespace(char *str) {
   return str;
 }
 
-static void _xmlDump(xmlNode *node) {
+static void _xmlDump(xmlNode *node, int recursive) {
+  if (node) {
+    if(recursive) {
+      xmlDebugDumpNode(stdout, node, -1);
+    } else {
+      xmlDebugDumpOneNode(stdout, node, -1);
+    }
+  }
 
   if (g_debug) {
     ullog_debug("enter");
@@ -153,9 +162,6 @@ static void _xmlDump(xmlNode *node) {
     log_debug("\n");
     */
 
-    if (node) {
-      xmlDebugDumpNode(stdout, node, -1);
-    }
     /*
     if (name)
       xmlFree(name);
@@ -164,38 +170,7 @@ static void _xmlDump(xmlNode *node) {
       */
     ullog_debug("exit");
   }
-
 }
-
-#if 0
-static rc_t oldexecActionCmd(xmlChar *value) {
-	ullog_debug("enter");
-
-  rc_t task_rc = RC_FAILURE;
-  int rc = 1;
-
-  if (value) {
-    _trimwhitespace((char *) value);
-    ullog_debug("executing action '%s'", value);
-    // TODO read stdout
-    dup2(1, 2);  //redirects stderr to stdout below this line.
-    rc = system((const char *) value);
-    if (rc == 0) {
-      task_rc = RC_SUCCESS;
-    }
-  } else {
-		ullog_err("cannot read command value or it is empty");
-		task_rc = RC_ERROR;
-		goto bail;
-	}
-
-bail:
-  ullog_debug("task_rc %d", task_rc);
-
-	ullog_debug("exit");
-  return task_rc;
-}
-#endif
 
 static rc_t processActionExec(xmlNodePtr node) {
 	ullog_debug("enter");
@@ -355,7 +330,7 @@ static rc_t processActionExec(xmlNodePtr node) {
 	printf("%s", exec_out_buff);
 
 
-bail:
+  bail:
   ullog_debug("task_rc %s", rc2rstr(task_rc));
   //if (node_id) xmlFree(node_id);
   if (action_value) xmlFree(action_value);
@@ -372,16 +347,13 @@ bail:
   return(task_rc);
 }
 
-static rc_t processActionNode(xmlNodePtr node) {
+static rc_t processActionLeaf(xmlNodePtr node) {
   ullog_debug("enter");
 
   rc_t task_rc = RC_FAILURE;
   xmlNodePtr cur_node = NULL;
 
-  _xmlDump(node);
-
   for (cur_node = node->children; cur_node; cur_node = cur_node->next) {
-    _xmlDump(cur_node);
     if (cur_node->type == XML_ELEMENT_NODE) {
       if (xmlStrcmp(cur_node->name, (const xmlChar *) "exec") == 0) {
         ullog_debug("action node address '%p'", cur_node);
@@ -389,15 +361,72 @@ static rc_t processActionNode(xmlNodePtr node) {
         break;
       } else {
         ullog_err("node '%s' is not supported", cur_node->name);
-        _xmlDump(cur_node);
+        _xmlDump(cur_node, 0);
         task_rc = RC_ERROR;
         goto bail;
       }
     }
   }
 
-bail:
+  bail:
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
 
+  ullog_debug("exit");
+  return(task_rc);
+}
+
+static rc_t processDecoratorNode(xmlNodePtr node) {
+  ullog_debug("enter");
+
+  rc_t task_rc = RC_SUCCESS;
+  xmlChar *node_type = NULL;
+
+  if (node->type == XML_ELEMENT_NODE) {
+    ullog_debug("element node '%s'", node->name);
+    node_type = xmlGetProp(node, (const xmlChar *) "type");
+    if (node_type && (strlen((const char *) node_type) > 0)) {
+      ullog_debug("node type '%s'", node_type);
+    } else {
+      ullog_err("node '%s' is not supported", node->name);
+      _xmlDump(node, 0);
+      task_rc = RC_ERROR;
+      goto bail;
+    }
+
+    if (xmlStrcmp(node_type, (const xmlChar *) "succeeder") == 0) {
+      ullog_debug("decorator node type is succeeder");
+      task_rc = processDecoratorSucceederNode(node);
+    } else {
+      ullog_err("node '%s' is not supported", node->name);
+      _xmlDump(node, 0);
+      task_rc = RC_ERROR;
+      goto bail;
+    }
+  }
+
+  bail:
+  ullog_debug("task_rc %s", rc2rstr(task_rc));
+  if (node_type) xmlFree(node_type);
+
+  ullog_debug("exit");
+  return(task_rc);
+}
+
+static rc_t processDecoratorSucceederNode(xmlNodePtr node) {
+  ullog_debug("enter");
+
+  rc_t task_rc = RC_SUCCESS;
+  xmlNodePtr cur_node = NULL;
+
+  for (cur_node = node->children; cur_node; cur_node = cur_node->next) {
+    if (cur_node->type == XML_ELEMENT_NODE) {
+      task_rc = processNode(cur_node);
+      if (task_rc == RC_FAILURE) {
+        task_rc = RC_SUCCESS;
+      }
+      break;
+    }
+  }
   ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
@@ -410,10 +439,7 @@ static rc_t processSequenceNode(xmlNodePtr node) {
   rc_t task_rc = RC_SUCCESS;
   xmlNodePtr cur_node = NULL;
 
-  _xmlDump(node);
-
   for (cur_node = node; cur_node; cur_node = cur_node->next) {
-    _xmlDump(cur_node);
     if (cur_node->type == XML_ELEMENT_NODE) {
       task_rc = processNode(cur_node);
       if (task_rc == RC_FAILURE || task_rc == RC_ERROR) {
@@ -422,8 +448,7 @@ static rc_t processSequenceNode(xmlNodePtr node) {
     }
   }
 
-bail:
-
+  bail:
   ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
@@ -436,10 +461,7 @@ static rc_t processSelectNode(xmlNodePtr node) {
   rc_t task_rc = RC_SUCCESS;
   xmlNodePtr cur_node = NULL;
 
-  _xmlDump(node);
-
   for (cur_node = node; cur_node; cur_node = cur_node->next) {
-    _xmlDump(cur_node);
     if (cur_node->type == XML_ELEMENT_NODE) {
       task_rc = processNode(cur_node);
       if (task_rc == RC_SUCCESS || task_rc == RC_ERROR) {
@@ -448,8 +470,7 @@ static rc_t processSelectNode(xmlNodePtr node) {
     }
   }
 
-bail:
-
+  bail:
   ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
@@ -461,26 +482,26 @@ static rc_t processNode(xmlNodePtr node) {
 
   rc_t task_rc = RC_SUCCESS;
 
-  _xmlDump(node);
-
   if (xmlStrcmp(node->name, (const xmlChar *) "action") == 0) {
     ullog_debug("action node address '%p'", node);
-    task_rc = processActionNode(node);
+    task_rc = processActionLeaf(node);
   } else if (xmlStrcmp(node->name, (const xmlChar *) "sequence") == 0) {
     ullog_debug("sequence node address '%p'", node);
     task_rc = processSequenceNode(node->children);
   } else if (xmlStrcmp(node->name, (const xmlChar *) "select") == 0) {
     ullog_debug("select node address '%p'", node);
     task_rc = processSelectNode(node->children);
+  } else if (xmlStrcmp(node->name, (const xmlChar *) "decorator") == 0) {
+    ullog_debug("decorator node address '%p'", node);
+    task_rc = processDecoratorNode(node);
   } else {
     ullog_err("node '%s' is not supported", node->name);
-    _xmlDump(node);
+    _xmlDump(node, 0);
     task_rc = RC_ERROR;
     goto bail;
   }
 
-bail:
-
+  bail:
   ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
@@ -493,10 +514,7 @@ static rc_t processRootNode(xmlNodePtr node) {
   rc_t task_rc = RC_SUCCESS;
   xmlNodePtr cur_node = NULL;
 
-  //_xmlDump(node);
-
   for (cur_node = node; cur_node; cur_node = cur_node->next) {
-    _xmlDump(cur_node);
     if (cur_node->type == XML_ELEMENT_NODE) {
       if (xmlStrcmp(cur_node->name, (const xmlChar *) "bt") == 0) {
         ullog_debug("node is bt");
@@ -505,15 +523,14 @@ static rc_t processRootNode(xmlNodePtr node) {
         goto bail;
       } else {
         ullog_err("node '%s' is not supported", cur_node->name);
-        _xmlDump(cur_node);
+        _xmlDump(cur_node, 0);
         task_rc = RC_ERROR;
         goto bail;
       }
     }
   }
 
-bail:
-
+  bail:
   ullog_debug("task_rc %s", rc2rstr(task_rc));
 
   ullog_debug("exit");
@@ -554,7 +571,7 @@ rc_t processFile(const char *filename) {
 	} while (task_rc == RC_RUNNING);
   ullog_debug("done processRootNode rc %s", rc2rstr(task_rc));
 
-bail:
+  bail:
   if (doc) xmlFreeDoc(doc);
   xmlCleanupParser();
   ullog_debug("task_rc %s", rc2rstr(task_rc));
@@ -582,17 +599,15 @@ int main(int argc, char *argv[]) {
   }
   ullog_debug("done process cli");
 
-
   ullog_debug("start processFile");
   task_rc = processFile(argv[1]);
   ullog_debug("done processFile rc %s", rc2rstr(task_rc));
 
-bail:
-
+  bail:
   ullog_debug("rc %s", rc2rstr(task_rc));
-  ullog_debug("exit bte");
-
 	ullog_deinit();
+
+  ullog_debug("exit bte");
   return(task_rc);
 }
 

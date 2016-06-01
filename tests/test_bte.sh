@@ -23,3 +23,9 @@ if ! sh test_sel_bte.sh ; then
 	exit 1
 fi
 
+echo "testing decorator succeeder"
+if ! sh test_decorator_succeeder_bte.sh ; then
+	echo "decorator succeeder failed"
+	exit 1
+fi
+

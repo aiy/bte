@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+	<!--  execute children obey order return if failed
+  return success if all succeed 
+  succeeder always returns success  
+  -->
+	<sequence>
+    <decorator type="succeeder">
+	    <action id='w_0' type='cmd' os='unix'>
+        <exec>echo Hi one seq</exec>
+      </action>
+    </decorator>
+	</sequence>
+</bt>

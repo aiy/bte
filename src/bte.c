@@ -17,13 +17,13 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 
 #include "uthash.h"
 
-//#define ULLOG_DEST (ULLOG_DEST_STDOUT)
-#define ULLOG_DEST (ULLOG_DEST_STDOUT | ULLOG_DEST_STDERR)
+#define ULLOG_DEST (ULLOG_DEST_STDOUT)
+//#define ULLOG_DEST (ULLOG_DEST_STDOUT | ULLOG_DEST_STDERR)
 //#define ULLOG_DEST (ULLOG_DEST_STDOUT | ULLOG_DEST_STDERR | ULLOG_DEST_SYSLOG)
-//#define ULLOG_LEVEL ULLOG_NOTICE
-#define ULLOG_LEVEL ULLOG_DEBUG
+#define ULLOG_LEVEL ULLOG_NOTICE
+//#define ULLOG_LEVEL ULLOG_DEBUG
 #include "ullog.h"
-static int g_debug = 1;
+static int g_debug = 0;
 
 enum {
   ACTION,

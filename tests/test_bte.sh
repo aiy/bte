@@ -29,3 +29,8 @@ if ! sh test_decorator_succeeder_bte.sh ; then
 	exit 1
 fi
 
+echo "testing stream"
+if ! sh test_stream_bte.sh ; then
+	echo "test stream failed"
+	exit 1
+fi

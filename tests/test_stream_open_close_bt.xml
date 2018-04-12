@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+
+	<sequence id='ls -al ~/'>
+	
+		<!-- ssh connect to host -->
+		<action id='connect_ssh1'>
+			<open stream_id='ssh1_fd'>ssh test@127.0.0.1</open>
+		</action>
+		
+		<!-- ssh disconnect from host -->
+		<action id='close_ssh1'>
+			<close stream_id='ssh1_fd'></close>
+		</action>
+		
+	</sequence>
+
+</bt>

@@ -11,7 +11,7 @@ SRC = bte.c
 OBJ = $(SRC:.c=.o)
 
 CFLAGS += `xml2-config --cflags`
-LIBS += `xml2-config --libs`
+LIBS += `xml2-config --libs` -lexpect -ltcl
 
 .PHONY: all clean
 

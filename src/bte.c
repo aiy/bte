@@ -9,11 +9,15 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 #include <unistd.h> // for dup
 #include <time.h>
 #include <limits.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include <libxml/xmlreader.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/debugXML.h>
+
+#include <expect.h>
 
 #include "uthash.h"
 
@@ -67,6 +71,7 @@ struct action_node {
 struct _fp_table {
   const char *id;
   FILE *fp;
+  int fd;
   UT_hash_handle hh; /* makes this structure hashable */
 };
 typedef struct _fp_table fp_table_t;
@@ -84,6 +89,8 @@ static rc_t processActionLeaf(xmlNodePtr node);
 
 // system specific
 static rc_t processActionExec(xmlNodePtr node);
+static rc_t processActionOpen(xmlNodePtr node);
+static rc_t processActionClose(xmlNodePtr node);
 
 static const char * rc2rstr(const int rc) {
   int i = 0;
@@ -337,7 +344,304 @@ static rc_t processActionExec(xmlNodePtr node) {
     if (action_state) xmlFree(action_state);
     if(fp_table && fp_table_item) {
         if(task_rc == RC_ERROR) {
-            pclose(fp_table_item->fp);
+            if(fp_table_item->fp) pclose(fp_table_item->fp);
+            HASH_DEL(fp_table, fp_table_item);
+            free(fp_table_item);
+        }
+    }
+
+	ullog_debug("exit");
+    return(task_rc);
+}
+
+static rc_t processActionOpen(xmlNodePtr node) {
+    ullog_debug("enter");
+
+    rc_t task_rc = RC_FAILURE;
+    xmlChar *node_id = NULL;
+    xmlChar *stream_id = NULL;
+    xmlChar *action_value = NULL;
+    //char exec_path[PATH_MAX] = "";
+	xmlChar *action_state = NULL;
+	//char exec_out_buff[255] = "";
+    fp_table_t *fp_table_item = NULL;
+    // enable to print hash
+    // fp_table_t *fp_table_item_tmp = NULL;
+    //int c = 0;
+    int opt = 0;
+    char *argvcp = NULL;
+	// FIXME fix array
+    char argv[255][255] = {};
+    char *token = NULL;
+    const char delim[] = " ";
+	int i = 0;
+
+    node_id = xmlGetProp(node, (const xmlChar *) "id");
+	if (node_id && (strlen((const char *) node_id) > 0)) {
+		ullog_debug("node id '%s'", node_id);
+	} else {
+		ullog_debug("generating node id");
+	    node_id = (xmlChar *) _gen_node_id();
+		if(!node_id) {
+			ullog_err("cannot generate node id");
+			task_rc = RC_ERROR;
+			goto bail;
+		}
+		if(!xmlNewProp(node,  (const xmlChar *) "id", node_id)) {
+			ullog_err("cannot write node id to tree");
+			task_rc = RC_ERROR;
+			goto bail;
+		}
+		ullog_debug("new generated node id '%s'", node_id);
+	}
+    stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
+	if (stream_id && (strlen((const char *) stream_id) > 0)) {
+		ullog_debug("stream id '%s'", stream_id);
+	} else {
+        ullog_err("cannot read node stream id");
+        task_rc = RC_ERROR;
+        goto bail;
+	}
+
+    action_state = xmlGetProp(node,  (const xmlChar *) "_state_");
+	ullog_debug("action state '%s'", action_state);
+	if (action_state && 
+        (strncmp((const char *) action_state, "running", strlen("running")) == 0)) {
+		ullog_debug("action is running");
+	} else if (action_state && 
+        (strncmp((const char *) action_state, "success", strlen("success")) == 0)) {
+		ullog_debug("action is success");
+	    task_rc = RC_SUCCESS;
+		goto bail;
+	} else {
+		ullog_debug("action is not set");
+		action_value = xmlNodeGetContent(node);
+  	    if (action_value) {
+            _trimwhitespace((char *) action_value);
+            if (strlen((const char *) action_value) == 0) {
+                ullog_err("cannot read command value or it is empty");
+                task_rc = RC_ERROR;
+                goto bail;
+            }
+
+            ullog_debug("create store fp item");
+            fp_table_item = (fp_table_t*)malloc(sizeof(fp_table_t));
+            if(!fp_table_item) {
+                ullog_err("cannot create fp table item");
+                task_rc = RC_ERROR;
+                goto bail;
+            }
+
+            ullog_debug("action value '%s'", action_value);
+            argvcp = strdup((const char *) action_value);
+			token = strtok(argvcp, delim);
+			while (token != NULL) {
+				snprintf(argv[i], 255, "%s", token);
+				token = strtok(NULL, delim);
+				++i;
+			}
+
+            if(!(fp_table_item->fd = exp_spawnl(argv[0], argv))) {
+                ullog_err("cannot execute command '%s'", action_value);
+				task_rc = RC_FAILURE;
+                goto bail;
+            }
+			opt = fcntl(fp_table_item->fd, F_GETFL);
+			if (opt < 0) {
+                ullog_err("cannot F_GETFL on open command '%s'", action_value);
+                task_rc = RC_ERROR;
+                goto bail;
+			}
+			opt |= O_NONBLOCK;
+			if (fcntl(fp_table_item->fd, F_SETFL, opt) < 0) {
+                ullog_err("cannot F_SETFL on open command '%s'", action_value);
+                task_rc = RC_ERROR;
+                goto bail;
+			}
+			task_rc = RC_SUCCESS;
+
+            ullog_debug("start store fp in fp table");
+            fp_table_item->id = (const char *) stream_id;
+            ullog_debug("id '%s'", fp_table_item->id);
+            ullog_debug("fp '%p'", fp_table_item->fp);
+            ullog_debug("fd '%d'", fp_table_item->fd);
+            HASH_ADD_KEYPTR(hh, fp_table, 
+            fp_table_item->id, strlen(fp_table_item->id), fp_table_item);
+            ullog_debug("done store fp in fp table");
+
+            if(!xmlSetProp(node, (const xmlChar *) "_state_", (const xmlChar *) "success")) {
+                ullog_err("cannot write node state to tree");
+                task_rc = RC_ERROR;
+                goto bail;
+            }
+
+  	    } else {
+			ullog_err("cannot read command value or it is empty");
+			task_rc = RC_ERROR;
+			goto bail;
+		}
+	}
+
+#if 0
+  // list fps in table for debugging only
+  HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
+   	ullog_debug("id '%s'", fp_table_item->id);
+   	ullog_debug("fp '%p'", fp_table_item->fp);
+  }
+#endif
+
+
+    if(!fp_table_item) {
+        ullog_debug("search fp_table_item");
+        HASH_FIND_STR(fp_table, (const char *) stream_id, fp_table_item);
+    }
+    ullog_debug("stream_id '%p'", stream_id);
+    ullog_debug("fp_table '%p'", fp_table);
+    ullog_debug("fp_table_item '%p'", fp_table_item);
+    if(!fp_table_item) {
+        ullog_err("cannot find open stream id for node id '%s'", node_id);
+        task_rc = RC_ERROR;
+        goto bail;
+    }
+
+    bail:
+    ullog_debug("task_rc %s", rc2rstr(task_rc));
+    //if (node_id) xmlFree(node_id);
+    if (action_value) xmlFree(action_value);
+    if (action_state) xmlFree(action_state);
+    if(fp_table && fp_table_item) {
+        if(task_rc == RC_ERROR) {
+            if(fp_table_item->fd) close(fp_table_item->fd);
+            HASH_DEL(fp_table, fp_table_item);
+            free(fp_table_item);
+        }
+    }
+
+	ullog_debug("exit");
+    return(task_rc);
+}
+
+static rc_t processActionClose(xmlNodePtr node) {
+    ullog_debug("enter");
+
+    rc_t task_rc = RC_FAILURE;
+    xmlChar *node_id = NULL;
+    xmlChar *stream_id = NULL;
+    xmlChar *action_value = NULL;
+    //char exec_path[PATH_MAX] = "";
+	xmlChar *action_state = NULL;
+	//char exec_out_buff[255] = "";
+    fp_table_t *fp_table_item = NULL;
+    // enable to print hash
+    // fp_table_t *fp_table_item_tmp = NULL;
+
+    node_id = xmlGetProp(node, (const xmlChar *) "id");
+	if (node_id && (strlen((const char *) node_id) > 0)) {
+		ullog_debug("node id '%s'", node_id);
+	} else {
+		ullog_debug("generating node id");
+	    node_id = (xmlChar *) _gen_node_id();
+		if(!node_id) {
+			ullog_err("cannot generate node id");
+			task_rc = RC_ERROR;
+			goto bail;
+		}
+		if(!xmlNewProp(node,  (const xmlChar *) "id", node_id)) {
+			ullog_err("cannot write node id to tree");
+			task_rc = RC_ERROR;
+			goto bail;
+		}
+		ullog_debug("new generated node id '%s'", node_id);
+	}
+    stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
+    if (stream_id && (strlen((const char *) stream_id) > 0)) {
+        ullog_debug("stream id '%s'", stream_id);
+    } else {
+        ullog_err("cannot read node stream id");
+        task_rc = RC_ERROR;
+        goto bail;
+    }
+
+    action_state = xmlGetProp(node,  (const xmlChar *) "_state_");
+	ullog_debug("action state '%s'", action_state);
+	if (action_state && 
+        (strncmp((const char *) action_state, "running", strlen("running")) == 0)) {
+		ullog_debug("action is running");
+	} else if (action_state && 
+        (strncmp((const char *) action_state, "success", strlen("success")) == 0)) {
+		ullog_debug("action is success");
+	    task_rc = RC_SUCCESS;
+		goto bail;
+	} else {
+		ullog_debug("action is not set");
+		action_value = xmlNodeGetContent(node);
+  	    if (action_value) {
+// no values in close action            
+#if 0
+            _trimwhitespace((char *) action_value);
+            if (strlen((const char *) action_value) == 0) {
+                ullog_err("cannot read command value or it is empty");
+                task_rc = RC_ERROR;
+                goto bail;
+            }
+            ullog_debug("action value '%s'", action_value);
+            strncat(exec_path, (const char *) action_value, PATH_MAX);
+#endif
+
+			if(!fp_table_item) {
+				ullog_debug("search fp_table_item");
+				HASH_FIND_STR(fp_table, (const char *) stream_id, fp_table_item);
+			}
+			ullog_debug("stream_id '%p'", stream_id);
+			ullog_debug("fp_table '%p'", fp_table);
+			ullog_debug("fp_table_item '%p'", fp_table_item);
+			if(!fp_table_item) {
+				ullog_err("cannot find open stream id for node id '%s'", node_id);
+				task_rc = RC_ERROR;
+				goto bail;
+			}
+
+			task_rc = RC_SUCCESS;
+            if(fp_table_item->fd) {
+                errno = 0;
+                if(close(fp_table_item->fd)) {
+					task_rc = RC_FAILURE;
+				}
+            }
+
+			HASH_DEL(fp_table, fp_table_item);
+			free(fp_table_item);
+			if(!xmlSetProp(node, (const xmlChar *) "_state_", (const xmlChar *) "success")) {
+				ullog_err("cannot write node state to tree");
+				task_rc = RC_ERROR;
+				goto bail;
+			}
+
+
+  	    } else {
+			ullog_err("cannot read command value or it is empty");
+			task_rc = RC_ERROR;
+			goto bail;
+		}
+	}
+
+#if 0
+  // list fps in table for debugging only
+  HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
+   	ullog_debug("id '%s'", fp_table_item->id);
+   	ullog_debug("fp '%p'", fp_table_item->fp);
+  }
+#endif
+
+
+    bail:
+    ullog_debug("task_rc %s", rc2rstr(task_rc));
+    //if (node_id) xmlFree(node_id);
+    if (action_value) xmlFree(action_value);
+    if (action_state) xmlFree(action_state);
+    if(fp_table && fp_table_item) {
+        if(task_rc == RC_ERROR) {
+            if(fp_table_item->fd) close(fp_table_item->fd);
             HASH_DEL(fp_table, fp_table_item);
             free(fp_table_item);
         }
@@ -358,6 +662,14 @@ static rc_t processActionLeaf(xmlNodePtr node) {
       if (xmlStrcmp(cur_node->name, (const xmlChar *) "exec") == 0) {
         ullog_debug("action node address '%p'", cur_node);
         task_rc = processActionExec(cur_node);
+        break;
+      } else if (xmlStrcmp(cur_node->name, (const xmlChar *) "open") == 0) {
+        ullog_debug("action node address '%p'", cur_node);
+        task_rc = processActionOpen(cur_node);
+        break;
+      } else if (xmlStrcmp(cur_node->name, (const xmlChar *) "close") == 0) {
+        ullog_debug("action node address '%p'", cur_node);
+        task_rc = processActionClose(cur_node);
         break;
       } else {
         ullog_err("node '%s' is not supported", cur_node->name);

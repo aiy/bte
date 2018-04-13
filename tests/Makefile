@@ -1,3 +1,5 @@
+# TODO 
+# valgrind --tool=memcheck --leak-check=full --num-callers=30 --show-reachable=yes --trace-children=no ~/git/bte/src/bte ~/git/bte/tests/test_stream_expect_bt.xml
 
 include ../Makefile.include
 

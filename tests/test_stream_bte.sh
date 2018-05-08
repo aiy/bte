@@ -13,3 +13,11 @@ if ! r=`$BTE_CMD test_stream_expect_bt.xml` ; then
 	exit 1
 fi
 echo "ok test stream expect"
+
+echo "test stream write"
+if ! r=`$BTE_CMD test_stream_write_bt.xml` ; then
+	echo "failed: test stream write"
+	exit 1
+fi
+echo "ok test stream write"
+

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+
+	<sequence id='ls -al ~/'>
+	
+		<!-- ssh connect to host -->
+		<action id='connect_ssh1'>
+			<open stream_id='ssh1_fd'>ssh test@127.0.0.1</open>
+		</action>
+
+        <!-- login to host -->
+        <sequence id='login'>
+            <!-- expect ssh password -->
+            <action id='expect_password_ssh1'>
+                <expect stream_id='ssh1_fd'>password:</expect>
+            </action>
+            <!-- send ssh password -->
+			<action id='send_pwd'>
+                <write stream_id='ssh1_fd'>pwd\n</write>
+            </action>
+            <!-- expect shell prompt -->
+            <action id='expect_shell_prompt'>
+                <expect stream_id='ssh1_fd'>~$ </expect>
+            </action>
+        </sequence>
+
+        <!-- get output of ls from host -->
+        <sequence id='get ls -al'>
+            <!-- send ssh password -->
+			<action id='send_ls'>
+                <write stream_id='ssh1_fd'>ls -al\n</write>
+            </action>
+            <!-- expect shell prompt -->
+            <action id='expect_shell_prompt'>
+                <expect stream_id='ssh1_fd'>~$ </expect>
+            </action>
+        </sequence>
+
+		<!-- ssh disconnect from host -->
+		<action id='close_ssh1'>
+			<close stream_id='ssh1_fd'></close>
+		</action>
+		
+	</sequence>
+
+</bt>

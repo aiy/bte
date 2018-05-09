@@ -29,6 +29,7 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 #include "ullog.h"
 static int g_debug = 0;
 static int g_expect_debug = 0;
+#define SELECT_SLEEP_USEC 200000
 
 enum {
   ACTION,
@@ -73,6 +74,7 @@ typedef struct {
   const char * id; // node id
   FILE * fp; 
   int fd;
+  fd_set fds;
   char read_buf[STREAM_BUF_SIZE];
   size_t read_bytes;
   char write_buf[STREAM_BUF_SIZE];
@@ -247,61 +249,6 @@ async_write_chunk(int fd, char * buf, size_t len)
             tn, &ch[i], errno, strerror(errno));
     return tn;
 }
-
-#if 0
-/**
- * return:
- *  0 - finished writing of data
- *  N - number of bytes read
- *  timeout
- *  -1 - error, error number is in errno 
- */
-int
-async_write(int fd, char * buf, size_t len)
-{
-    int nwritten = 0;
-    int pwritten = 0;
-    int n = 0;
-    int i = 1;
-
-    printf("async_write: writing buf '%s' len %zu\n", buf, len);
-    while (1) {
-        //printf("async_write: IN i %i n %d chunk '%s' buf '%s' total written %d\n",
-        //        i, n, buf + nwritten, buf, nwritten);
-        n = async_write_chunk(fd, buf + nwritten, 
-            (len > STREAM_CHUNK_SIZE) ? STREAM_CHUNK_SIZE : len);
-        //printf("async_write: DONE i %i n %d chunk '%s' buf '%s' total written %d\n",
-        //        i, n, buf + nwritten, buf, nwritten);
-        if (n > 0) {
-            printf("async_write: got chunk of written '%s'\n", buf + nwritten);
-            nwritten += n;
-            pwritten = nwritten;
-        } else if (n == -1) {
-            printf("async_write: error writing chunk\n");
-            nwritten = -1;
-            break;
-        } else if (n == -2) {
-            if (pwritten > 0) {
-                printf("async_write: again after some data: receiver is not ready\n");
-                break;
-            } else {
-                printf("async_write: keep writting chunk\n");
-            }
-        }
-        if (nwritten == len) {
-            printf("async_write: finished writing buffer\n");
-            nwritten = 0;
-            break;
-        }
-        //printf("async_write: OUT i %i n %d chunk '%s' buf '%s' total written %d\n",
-        //        i, n, buf + nwritten, buf, nwritten);
-        ++i;
-        if(g_debug) sleep(1);
-    }
-    printf("async_write: finished writing buffer '%s'\n", buf);
-    return nwritten;
-}
-#endif
 
 static rc_t processActionExec(xmlNodePtr node) {
     ullog_debug("enter");
@@ -606,6 +553,8 @@ static rc_t processActionOpen(xmlNodePtr node) {
                 task_rc = RC_ERROR;
                 goto bail;
             }
+            FD_ZERO(&(fp_table_item->fds));
+            FD_SET(fp_table_item->fd, &(fp_table_item->fds));
 
             task_rc = RC_SUCCESS;
 
@@ -761,6 +710,7 @@ static rc_t processActionClose(xmlNodePtr node) {
                 if(close(fp_table_item->fd)) {
                     task_rc = RC_FAILURE;
                 }
+                FD_ZERO(&(fp_table_item->fds));
             }
 
             HASH_DEL(fp_table, fp_table_item);
@@ -817,7 +767,9 @@ static rc_t processActionExpect(xmlNodePtr node) {
     fp_table_t *fp_table_item = NULL;
     // enable to print hash
     // fp_table_t *fp_table_item_tmp = NULL;
+    struct timeval tv;
     int rc = 0;
+    int select_rc = -1;
 
     node_id = xmlGetProp(node, (const xmlChar *) "id");
     if (node_id && (strlen((const char *) node_id) > 0)) {
@@ -887,6 +839,29 @@ static rc_t processActionExpect(xmlNodePtr node) {
             goto bail;
         }
 
+        // wait for data for reading
+        // no blocking
+        tv.tv_sec = 0;
+        tv.tv_usec = SELECT_SLEEP_USEC;
+        errno = 0;
+        select_rc = select(fp_table_item->fd + 1, &(fp_table_item->fds), NULL, NULL, &tv);
+        if(select_rc == -1) {
+            ullog_debug("stream id '%s' select error error '%s'", 
+                    node_id, strerror(errno));
+            task_rc = RC_FAILURE;
+            goto bail;
+        } else if (select_rc == 0) {
+            ullog_debug("stream id '%s' select timeout", node_id);
+            if(nodeSetState(node, RC_RUNNING)) {
+                ullog_err("cannot write node state to tree");
+                task_rc = RC_ERROR;
+                goto bail;
+            }
+            task_rc = RC_RUNNING;
+            goto bail;
+        } 
+        ullog_debug("start reading stream id '%s'", node_id);
+
         // do actual action
         errno = 0;
         ullog_debug("df '%d' exp_regexp '%d' action_value '%s' exp_end %d", fp_table_item->fd, exp_regexp, action_value, exp_end);
@@ -939,7 +914,7 @@ static rc_t processActionExpect(xmlNodePtr node) {
         goto bail;
     }
 
-    //if(g_debug) sleep(1);
+    if(g_debug) sleep(1);
 
 #if 0
   // list fps in table for debugging only
@@ -980,7 +955,9 @@ static rc_t processActionWrite(xmlNodePtr node) {
     // enable to print hash
     // fp_table_t *fp_table_item_tmp = NULL;
     //int rc = 0;
-	int n = 0;
+    int n = 0;
+    int select_rc = -1;
+    struct timeval tv;
 
     node_id = xmlGetProp(node, (const xmlChar *) "id");
     if (node_id && (strlen((const char *) node_id) > 0)) {
@@ -1096,6 +1073,30 @@ static rc_t processActionWrite(xmlNodePtr node) {
     ullog_debug("fp_table_item '%p'", fp_table_item);
     ullog_debug("write buf '%s'", fp_table_item->write_buf);
 
+    // wait for data for writing
+    // no blocking
+    tv.tv_sec = 0;
+    tv.tv_usec = SELECT_SLEEP_USEC;
+    errno = 0;
+    select_rc = select(fp_table_item->fd + 1, NULL, &(fp_table_item->fds), 
+            NULL, &tv);
+    if(select_rc == -1) {
+        ullog_debug("stream id '%s' select error error '%s'",
+                node_id, strerror(errno));
+        task_rc = RC_FAILURE;
+        goto bail;
+    } else if (select_rc == 0) {
+        ullog_debug("stream id '%s' select timeout", node_id);
+        if(nodeSetState(node, RC_RUNNING)) {
+            ullog_err("cannot write node state to tree");
+            task_rc = RC_ERROR;
+            goto bail;
+        }
+        task_rc = RC_RUNNING;
+        goto bail;
+    }
+    ullog_debug("start writing to stream id '%s'", node_id);
+
     // start do actual action
     n = async_write_chunk(fp_table_item->fd, 
         fp_table_item->write_buf + fp_table_item->written_bytes, 
@@ -1109,9 +1110,7 @@ static rc_t processActionWrite(xmlNodePtr node) {
         ullog_debug("async_write: got chunk of written");
         fp_table_item->written_bytes += n;
         task_rc = RC_RUNNING;
-        // FIXME replace sleep with proper select() calls on read and write
-        //if(g_debug) sleep(1);
-        sleep(1);
+        if(g_debug) sleep(1);
     } else if (n == -1) {
         ullog_err("async_write: error writing chunk");
         fp_table_item->written_bytes = -1;

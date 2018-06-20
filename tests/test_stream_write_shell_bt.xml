@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+
+    <!-- get output of ps from shell -->
+    <sequence id='get ps -eaf'>
+        <action id='send_ps'>
+            <open stream_id='ps_fd'>ps -efa</open>
+        </action>
+        <!-- expect shell prompt -->
+        <action id='expect_shell_prompt'>
+            <expect stream_id='ps_fd'>compiz</expect>
+        </action>
+        <action id='close_ssh1'>
+            <close stream_id='ps_fd'/>
+        </action>
+    </sequence>
+		
+</bt>

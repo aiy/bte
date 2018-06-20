@@ -1402,13 +1402,15 @@ int main(int argc, char *argv[]) {
 
   rc_t task_rc = RC_FAILURE;
 
+  ullog_debug("enable debug");
+
   if (argc < 2) {
     ullog_err("provide file");
     task_rc = RC_ERROR;
     goto bail;
   }
   if (argc == 3) {
-    if (strncmp(argv[2], "-d", 2) == 0) {
+    if (strncmp(argv[1], "-d", 2) == 0) {
       ullog_debug("enable debug");
       g_debug = 1;
     }
@@ -1416,7 +1418,11 @@ int main(int argc, char *argv[]) {
   ullog_debug("done process cli");
 
   ullog_debug("start processFile");
-  task_rc = processFile(argv[1]);
+  if (argc == 3) {
+    task_rc = processFile(argv[2]);
+  } else {
+    task_rc = processFile(argv[1]);
+  }
   ullog_debug("done processFile rc %s", rc2rstr(task_rc));
 
   bail:

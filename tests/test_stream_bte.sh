@@ -21,3 +21,9 @@ if ! r=`$BTE_CMD test_stream_write_bt.xml` ; then
 fi
 echo "ok test stream write"
 
+echo "test stream expect command"
+if ! r=`$BTE_CMD test_stream_write_shell_bt.xml` ; then
+	echo "failed: test stream expect command"
+	exit 1
+fi
+echo "ok test stream expect command"

@@ -8,7 +8,7 @@
         </action>
         <!-- expect shell prompt -->
         <action id='expect_shell_prompt'>
-            <expect stream_id='ps_fd'>compiz</expect>
+            <expect stream_id='ps_fd'>init</expect>
         </action>
         <action id='close_ssh1'>
             <close stream_id='ps_fd'/>

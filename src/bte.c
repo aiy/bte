@@ -29,7 +29,7 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 #include "ullog.h"
 static int g_debug = 0;
 static int g_expect_debug = 0;
-#define SELECT_SLEEP_USEC 200000
+#define SELECT_SLEEP_USEC 100000
 
 enum {
     ACTION,
@@ -99,6 +99,24 @@ static rc_t processActionClose(xmlNodePtr node);
 static rc_t processActionExpect(xmlNodePtr node);
 static rc_t processActionWrite(xmlNodePtr node);
 
+
+static int
+print_fp_table(fp_table_t * fp_table) 
+{ 
+    fp_table_t *fp_table_item, *fp_table_item_tmp = NULL;
+	if (!fp_table) {
+        ullog_debug("fp_table is empty");
+	} else {
+        ullog_debug("fp_table p %p", fp_table);
+		HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
+			ullog_debug("id '%s' fp %p fd %d read %d '%s' written %d '%s'", 
+                    fp_table_item->id, fp_table_item->fp , fp_table_item->fd,
+                    (int) fp_table_item->read_bytes, fp_table_item->read_buf,
+                    (int) fp_table_item->written_bytes, fp_table_item->write_buf);
+		}
+	}
+	return 0;
+}
 
 static int 
 nodeSetState(xmlNodePtr node, rc_t state_rc) 
@@ -238,7 +256,10 @@ async_write_chunk(int fd, char * buf, size_t len)
             if(ch[i] == 'n') {
                 esc_ch[0] = '\n';
                 n = write(fd, &esc_ch, 1);
-            }
+            } else if(ch[i] == 'r') {
+                esc_ch[0] = '\r';
+                n = write(fd, &esc_ch, 1);
+            } 
         } else {
             n = write(fd, &ch[i], 1);
         }
@@ -268,8 +289,6 @@ processActionExec(xmlNodePtr node)
     xmlChar *action_state = NULL;
     char exec_out_buff[255] = "";
     fp_table_t *fp_table_item = NULL;
-    // enable to print hash
-    // fp_table_t *fp_table_item_tmp = NULL;
     int c = 0;
 
     node_id = xmlGetProp(node, (const xmlChar *) "id");
@@ -290,6 +309,7 @@ processActionExec(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
+	print_fp_table(fp_table);
 
     action_state = xmlGetProp(node,  (const xmlChar *) "_state_");
     ullog_debug("action state '%s'", action_state);
@@ -344,15 +364,6 @@ processActionExec(xmlNodePtr node)
             goto bail;
         }
     }
-
-#if 0
-  // list fps in table for debugging only
-  HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
-   	ullog_debug("id '%s'", fp_table_item->id);
-   	ullog_debug("fp '%p'", fp_table_item->fp);
-  }
-#endif
-
 
     if(!fp_table_item) {
         ullog_debug("search fp_table_item");
@@ -416,6 +427,7 @@ processActionExec(xmlNodePtr node)
     printf("%s", exec_out_buff);
 
     bail:
+	print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     if (action_value) xmlFree(action_value);
@@ -443,8 +455,6 @@ processActionOpen(xmlNodePtr node)
     xmlChar *action_value = NULL;
     xmlChar *action_state = NULL;
     fp_table_t *fp_table_item = NULL;
-    // enable to print hash
-    // fp_table_t *fp_table_item_tmp = NULL;
     int opt = 0;
     char **argv = NULL;
     int argc = 0;
@@ -471,6 +481,8 @@ processActionOpen(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
+	print_fp_table(fp_table);
+
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
         ullog_debug("stream id '%s'", stream_id);
@@ -509,7 +521,6 @@ processActionOpen(xmlNodePtr node)
                 goto bail;
             }
 
-
             fp_table_item->written_bytes = 0;
 #if 0
             //fp_table_item->write_buf[0] = '\0';
@@ -537,7 +548,7 @@ processActionOpen(xmlNodePtr node)
             if(g_expect_debug) {
                 exp_is_debugging = 1;
                 exp_loguser = 1;
-                exp_timeout = 1; // return immediately
+                exp_timeout = 0; // return immediately
             }
 
             if(!(fp_table_item->fd = exp_spawnv(argv[0], (char **) argv))) {
@@ -581,21 +592,13 @@ processActionOpen(xmlNodePtr node)
                 task_rc = RC_ERROR;
                 goto bail;
             }
+            sleep(1);
         } else {
             ullog_err("cannot read command value or it is empty");
             task_rc = RC_ERROR;
             goto bail;
         }
     }
-
-#if 0
-  // list fps in table for debugging only
-  HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
-   	ullog_debug("id '%s'", fp_table_item->id);
-   	ullog_debug("fp '%p'", fp_table_item->fp);
-  }
-#endif
-
 
     if(!fp_table_item) {
         ullog_debug("search fp_table_item");
@@ -611,6 +614,7 @@ processActionOpen(xmlNodePtr node)
     }
 
     bail:
+	print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     //if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     //if (stream_id && (task_rc != RC_RUNNING)) xmlFree(stream_id);
@@ -645,8 +649,6 @@ processActionClose(xmlNodePtr node)
     xmlChar *action_value = NULL;
     xmlChar *action_state = NULL;
     fp_table_t *fp_table_item = NULL;
-    // enable to print hash
-    // fp_table_t *fp_table_item_tmp = NULL;
 
     node_id = xmlGetProp(node, (const xmlChar *) "id");
     if (node_id && (strlen((const char *) node_id) > 0)) {
@@ -666,6 +668,8 @@ processActionClose(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
+	print_fp_table(fp_table);
+
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
         ullog_debug("stream id '%s'", stream_id);
@@ -737,16 +741,8 @@ processActionClose(xmlNodePtr node)
         }
     }
 
-#if 0
-  // list fps in table for debugging only
-  HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
-   	ullog_debug("id '%s'", fp_table_item->id);
-   	ullog_debug("fp '%p'", fp_table_item->fp);
-  }
-#endif
-
-
     bail:
+	print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     if (stream_id && (task_rc != RC_RUNNING)) xmlFree(stream_id);
@@ -775,10 +771,8 @@ processActionExpect(xmlNodePtr node)
     xmlChar *action_value = NULL;
     xmlChar *action_state = NULL;
     fp_table_t *fp_table_item = NULL;
-    // enable to print hash
-    // fp_table_t *fp_table_item_tmp = NULL;
-    struct timeval tv;
     int rc = 0;
+    struct timeval tv;
     int select_rc = -1;
 
     node_id = xmlGetProp(node, (const xmlChar *) "id");
@@ -799,6 +793,8 @@ processActionExpect(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
+	print_fp_table(fp_table);
+
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
         ullog_debug("stream id '%s'", stream_id);
@@ -855,6 +851,7 @@ processActionExpect(xmlNodePtr node)
         tv.tv_usec = SELECT_SLEEP_USEC;
         errno = 0;
         select_rc = select(fp_table_item->fd + 1, &(fp_table_item->fds), NULL, NULL, &tv);
+        ullog_debug("read stream id '%s' rc %d", node_id, select_rc);
         if(select_rc == -1) {
             ullog_debug("stream id '%s' select error error '%s'", 
                     node_id, strerror(errno));
@@ -878,9 +875,9 @@ processActionExpect(xmlNodePtr node)
                 fp_table_item->fd, exp_regexp, action_value, exp_end);
         rc = exp_expectl(fp_table_item->fd, exp_glob, action_value, 1, 
                 exp_end);
-        ullog_debug("rc '%d' error '%s'", rc, strerror(errno));
-        //ullog_debug("rc '%d' buffer '%s' matched '%s' error '%s'", 
-        //    rc, exp_buffer, exp_match, strerror(errno));
+        //ullog_debug("rc '%d' error '%s'", rc, strerror(errno));
+        ullog_debug("rc '%d' buffer '%s' matched '%s' error '%s'", 
+            rc, exp_buffer, exp_match, strerror(errno));
         if(rc == 1) {
             ullog_debug("MATCHED");
             if(nodeSetState(node, RC_SUCCESS)) {
@@ -924,18 +921,10 @@ processActionExpect(xmlNodePtr node)
         goto bail;
     }
 
-    if(g_debug) sleep(1);
-
-#if 0
-  // list fps in table for debugging only
-  HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
-   	ullog_debug("id '%s'", fp_table_item->id);
-   	ullog_debug("fp '%p'", fp_table_item->fp);
-  }
-#endif
-
+    //if(g_debug) sleep(1);
 
     bail:
+	print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     //if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     //if (stream_id&& (task_rc != RC_RUNNING) ) xmlFree(stream_id);
@@ -964,8 +953,6 @@ processActionWrite(xmlNodePtr node)
     xmlChar *action_value = NULL;
     xmlChar *action_state = NULL;
     fp_table_t *fp_table_item = NULL;
-    // enable to print hash
-    // fp_table_t *fp_table_item_tmp = NULL;
     //int rc = 0;
     int n = 0;
     int select_rc = -1;
@@ -989,6 +976,8 @@ processActionWrite(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
+	print_fp_table(fp_table);
+
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
         ullog_debug("stream id '%s'", stream_id);
@@ -1122,7 +1111,7 @@ processActionWrite(xmlNodePtr node)
         ullog_debug("async_write: got chunk of written");
         fp_table_item->written_bytes += n;
         task_rc = RC_RUNNING;
-        if(g_debug) sleep(1);
+        //if(g_debug) sleep(1);
     } else if (n == -1) {
         ullog_err("async_write: error writing chunk");
         fp_table_item->written_bytes = -1;
@@ -1134,11 +1123,12 @@ processActionWrite(xmlNodePtr node)
         fp_table_item->written_bytes = 0;
         ullog_debug("async_write: finished writing buffer\n");
         task_rc = RC_SUCCESS;
+        sleep(1);
     }
     // finish do actual action
 
-
     bail:
+	print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     //if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     //if (stream_id&& (task_rc != RC_RUNNING) ) xmlFree(stream_id);

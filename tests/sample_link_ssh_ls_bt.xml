@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bt>
+
+	<sequence id='ls -al ~/'>
+	
+		<!-- ssh connect to host -->
+		<action id='connect_ssh1'>
+			<open fd='ssh1_fd'>ssh://user1@localhost</open>
+		</action>
+		
+		<!-- login to host -->
+        <action id='ssh_login' xlink:href="ssh_login_bt.xml" />
+
+		<!-- send ls command -->
+		<action id='send_ls'>
+			<write fd='ssh1_fd'>ls -al</write>
+		</action>
+
+		<!-- read ls output -->
+		<sequence id='get_ls_out'>
+			<action id='read_ls_out'>
+				<read fd='ssh1_fd' data='ls_out' />
+			</action>
+			<action id='match_prompt'>
+				<match data='ls_out'>:~$\s</match>
+			</action>
+		</sequence>
+
+		<!-- logout from host -->
+        <action id='ssh_logout' link:href="ssh_logout_bt.xml"/>
+
+		<!-- ssh disconnect from host -->
+		<action id='close_ssh1'>
+			<close fd='ssh1_fd'></close>
+		</action>
+		
+	</sequence>
+
+</bt>

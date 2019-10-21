@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wikimedia>
+  <projects>
+    <project name="Wikipedia" launch="2001-01-05">
+      <editions>
+        <edition language="English">en.wikipedia.org</edition>
+        <edition language="German">de.wikipedia.org</edition>
+        <edition language="French">fr.wikipedia.org</edition>
+        <edition language="Polish">pl.wikipedia.org</edition>
+        <edition language="Spanish">es.wikipedia.org</edition>
+      </editions>
+    </project>
+    <project name="Wiktionary" launch="2002-12-12">
+      <editions>
+        <edition language="English">en.wiktionary.org</edition>
+        <edition language="French">fr.wiktionary.org</edition>
+        <edition language="Vietnamese">vi.wiktionary.org</edition>
+        <edition language="Turkish">tr.wiktionary.org</edition>
+        <edition language="Spanish">es.wiktionary.org</edition>
+      </editions>
+    </project>
+  </projects>
+</Wikimedia>
+
+//editions//*[text() = 'en.wikipedia.org']/text() 
+
+
+Text = en.wikipedia.org
+
+/Wikimedia/projects/project/editions/edition[@language='English']/text()
+
+
+//editions//*[contains(text(),'en')]
+Element='<edition language="English">en.wikipedia.org</edition>'
+Element='<edition language="English">en.wiktionary.org</edition>'
+
+
+
+ <expr>//action/[@id='enter_0'] eq 'Configure'</expr>
+
+xmllint --xpath "//*[@stream_id='ssh1_fd']" test_stream_open_close_bt.xml
+out= <open stream_id="ssh1_fd">ssh test@127.0.0.1</open><close stream_id="ssh1_fd"/>

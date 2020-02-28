@@ -24,7 +24,7 @@ if r=`$BTE_CMD test_sel_one_fail_bt.xml 2>&1`; then
 	echo "failed: not sel one fail action"
 	exit 1
 fi
-m="sh: 1: __fail_cmd__: not found"
+m="sh: __fail_cmd__: command not found"
 if [ "$r" != "$m" ]; then
 	echo "failed: output of not sel one fail action"
 	exit 1
@@ -48,8 +48,8 @@ if r=`$BTE_CMD test_sel_two_fail_bt.xml 2>&1` ; then
 	echo "failed: sel two fail action"
 	exit 1
 fi
-m="sh: 1: __fail_cmd__0: not found
-sh: 1: __fail_cmd__1: not found"
+m="sh: __fail_cmd__0: command not found
+sh: __fail_cmd__1: command not found"
 if [ "$r" != "$m" ]; then
 	echo "failed: output of sel two fail action"
 	exit 1
@@ -73,7 +73,7 @@ if ! r=`$BTE_CMD test_sel_one_fail_one_ok_bt.xml 2>&1` ; then
 	echo "failed: sel one fail one ok action"
 	exit 1
 fi
-m="sh: 1: __fail_cmd__0: not found
+m="sh: __fail_cmd__0: command not found
 Hi one seq"
 if [ "$r" != "$m" ]; then
 	echo "failed: output of sel one fail one ok action"

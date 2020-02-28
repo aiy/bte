@@ -12,7 +12,7 @@
         <sequence id='login'>
             <!-- expect ssh password -->
             <action id='expect_password_ssh1'>
-                <expect stream_id='ssh1_fd'>password:</expect>
+                <expect stream_id='ssh1_fd'>assword:</expect>
             </action>
             <!-- send ssh password -->
 			<action id='send_pwd'>

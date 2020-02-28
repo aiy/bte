@@ -27,6 +27,8 @@ http://en.wikipedia.org/wiki/Behavior_Trees_(Artificial_Intelligence,_Robotics_a
 #define ULLOG_LEVEL ULLOG_NOTICE
 //#define ULLOG_LEVEL ULLOG_DEBUG
 #include "ullog.h"
+
+// VERSION 0.0.1
 static int g_debug = 0;
 static int g_expect_debug = 0;
 #define SELECT_SLEEP_USEC 100000
@@ -104,18 +106,18 @@ static int
 print_fp_table(fp_table_t * fp_table) 
 { 
     fp_table_t *fp_table_item, *fp_table_item_tmp = NULL;
-	if (!fp_table) {
+    if (!fp_table) {
         ullog_debug("fp_table is empty");
-	} else {
+    } else {
         ullog_debug("fp_table p %p", fp_table);
-		HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
-			ullog_debug("id '%s' fp %p fd %d read %d '%s' written %d '%s'", 
+        HASH_ITER(hh, fp_table, fp_table_item, fp_table_item_tmp) {
+        ullog_debug("id '%s' fp %p fd %d read %d '%s' written %d '%s'", 
                     fp_table_item->id, fp_table_item->fp , fp_table_item->fd,
                     (int) fp_table_item->read_bytes, fp_table_item->read_buf,
                     (int) fp_table_item->written_bytes, fp_table_item->write_buf);
-		}
-	}
-	return 0;
+        }
+    }
+    return 0;
 }
 
 static int 
@@ -158,29 +160,6 @@ _gen_node_id(void)
     }
     return id_str;
 }
-
-#if 0
-static char * _trimwhitespace(char *str) {
-  char *end;
-
-  // Trim leading space
-  while (isspace(*str))
-    str++;
-
-  if (*str == 0)  // All spaces?
-    return str;
-
-  // Trim trailing space
-  end = str + strlen(str) - 1;
-  while (end > str && isspace(*end))
-    end--;
-
-  // Write new null terminator
-  *(end + 1) = 0;
-
-  return str;
-}
-#endif
 
 static void 
 _xmlDump(xmlNode *node, int recursive) 
@@ -309,7 +288,7 @@ processActionExec(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
 
     action_state = xmlGetProp(node,  (const xmlChar *) "_state_");
     ullog_debug("action state '%s'", action_state);
@@ -325,7 +304,6 @@ processActionExec(xmlNodePtr node)
         ullog_debug("action is not set");
         action_value = xmlNodeGetContent(node);
         if (action_value) {
-            //_trimwhitespace((char *) action_value);
             if (strlen((const char *) action_value) == 0) {
                 ullog_err("cannot read command value or it is empty");
                 task_rc = RC_ERROR;
@@ -427,7 +405,7 @@ processActionExec(xmlNodePtr node)
     printf("%s", exec_out_buff);
 
     bail:
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     if (action_value) xmlFree(action_value);
@@ -481,7 +459,7 @@ processActionOpen(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
 
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
@@ -506,7 +484,6 @@ processActionOpen(xmlNodePtr node)
         ullog_debug("action is not set");
         action_value = xmlNodeGetContent(node);
         if (action_value) {
-            //_trimwhitespace((char *) action_value);
             if (strlen((const char *) action_value) == 0) {
                 ullog_err("cannot read command value or it is empty");
                 task_rc = RC_ERROR;
@@ -614,7 +591,7 @@ processActionOpen(xmlNodePtr node)
     }
 
     bail:
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     //if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     //if (stream_id && (task_rc != RC_RUNNING)) xmlFree(stream_id);
@@ -668,7 +645,7 @@ processActionClose(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
 
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
@@ -742,7 +719,7 @@ processActionClose(xmlNodePtr node)
     }
 
     bail:
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     if (stream_id && (task_rc != RC_RUNNING)) xmlFree(stream_id);
@@ -793,7 +770,7 @@ processActionExpect(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
 
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
@@ -818,7 +795,6 @@ processActionExpect(xmlNodePtr node)
 
     action_value = xmlNodeGetContent(node);
     if (action_value) {
-        //_trimwhitespace((char *) action_value);
         if (strlen((const char *) action_value) == 0) {
             ullog_err("cannot read command value or it is empty");
             task_rc = RC_ERROR;
@@ -924,7 +900,7 @@ processActionExpect(xmlNodePtr node)
     //if(g_debug) sleep(1);
 
     bail:
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     //if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     //if (stream_id&& (task_rc != RC_RUNNING) ) xmlFree(stream_id);
@@ -953,7 +929,6 @@ processActionWrite(xmlNodePtr node)
     xmlChar *action_value = NULL;
     xmlChar *action_state = NULL;
     fp_table_t *fp_table_item = NULL;
-    //int rc = 0;
     int n = 0;
     int select_rc = -1;
     struct timeval tv;
@@ -976,7 +951,7 @@ processActionWrite(xmlNodePtr node)
         }
         ullog_debug("new generated node id '%s'", node_id);
     }
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
 
     stream_id = xmlGetProp(node, (const xmlChar *) "stream_id");
     if (stream_id && (strlen((const char *) stream_id) > 0)) {
@@ -1001,7 +976,6 @@ processActionWrite(xmlNodePtr node)
         ullog_debug("action is not set");
         action_value = xmlNodeGetContent(node);
         if (action_value) {
-            //_trimwhitespace((char *) action_value); 
             if (strlen((const char *) action_value) == 0) {
                 ullog_err("cannot read command value or it is empty");
                 task_rc = RC_ERROR;
@@ -1128,7 +1102,7 @@ processActionWrite(xmlNodePtr node)
     // finish do actual action
 
     bail:
-	print_fp_table(fp_table);
+    print_fp_table(fp_table);
     ullog_debug("task_rc %s", rc2rstr(task_rc));
     //if (node_id && (task_rc != RC_RUNNING)) xmlFree(node_id);
     //if (stream_id&& (task_rc != RC_RUNNING) ) xmlFree(stream_id);

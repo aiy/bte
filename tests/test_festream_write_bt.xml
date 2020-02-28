@@ -5,7 +5,7 @@
 	
 		<!-- ssh connect to host -->
 		<action id='connect_ssh1'>
-			<open stream_id='ssh1_fd'>ssh admin@172.16.177.115</open>
+			<open stream_id='ssh1_fd'>ssh test@localhost</open>
 		</action>
 
         <!-- login to host -->

@@ -24,7 +24,7 @@ if ! r=`$BTE_CMD test_decorator_succeeder_one_fail_action_bt.xml 2>&1`; then
   echo "failed: one fail action with succeeder decorator"
 	exit 1
 fi
-m="sh: 1: __fail_cmd__: not found"
+m="sh: __fail_cmd__: command not found"
 if [ "$r" != "$m" ]; then
   echo "failed: output of one fail action with succeeder decorator"
 	exit 1
@@ -36,8 +36,8 @@ if ! r=`$BTE_CMD test_decorator_succeeder_two_fail_actions_bt.xml 2>&1`; then
   echo "failed: two fail actions with succeeder decorator"
 	exit 1
 fi
-m="sh: 1: __fail_cmd__0: not found
-sh: 1: __fail_cmd__1: not found"
+m="sh: __fail_cmd__0: command not found
+sh: __fail_cmd__1: command not found"
 if [ "$r" != "$m" ]; then
   echo "failed: output of two fail actions with succeeder decorator"
 	exit 1
@@ -50,7 +50,7 @@ if ! r=`$BTE_CMD test_decorator_succeeder_one_ok_one_fail_actions_bt.xml 2>&1`; 
 	exit 1
 fi
 m="Hi one seq
-sh: 1: __fail_cmd__1: not found"
+sh: __fail_cmd__1: command not found"
 if [ "$r" != "$m" ]; then
   echo "failed: output of one ok one fail actions with succeeder decorator"
 	exit 1
@@ -64,7 +64,7 @@ if ! r=`$BTE_CMD test_sel_one_fail_one_ok_bt.xml 2>&1` ; then
 	echo "failed: sel one fail one ok action"
 	exit 1
 fi
-m="sh: 1: __fail_cmd__0: not found
+m="sh: __fail_cmd__0: command not found
 Hi one seq"
 if [ "$r" != "$m" ]; then
 	echo "failed: output of sel one fail one ok action"

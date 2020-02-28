@@ -20,10 +20,10 @@
 - simple text stream
 
 ### Tested on
-CentOS Linux release 7.6.1810
-expect version 5.45
-libxml version 20901
-tcl 8.5
+CentOS Linux release 7.6.1810  
+expect version 5.45  
+libxml version 20901  
+tcl 8.5 
 
 ## Installation
 ### Debian dependencies:
@@ -34,7 +34,7 @@ sudo apt install expect
 ```
 ### RedHat dependencies:
 ```
-sud yum istall gcc
+sudo yum istall gcc
 sudo yum install libxml2-devel
 sudo yum install tcl-devel
 sudo yum install expect-devel

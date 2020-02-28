@@ -265,4 +265,4 @@ child. That is until the child finally returns a failure, at which point
 the repeater will return success to its parent.
 
 Simplified version of
-<https://outforafight.wordpress.com/2014/07/15/Behavior-behavior-trees-for-ai-dudes-part-1/>
+<https://outforafight.wordpress.com/2014/07/15/behaviour-behavior-trees-for-ai-dudes-part-1/>

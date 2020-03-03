@@ -1,3 +1,6 @@
+- add sub-trees
 - add variables
+- add debug options (state print, step iteration)
 - cleanup streams
 - check memory leaks
+- consider migration to python

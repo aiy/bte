@@ -11,6 +11,7 @@ SRC = bte.c
 OBJ = $(SRC:.c=.o)
 
 CFLAGS += `xml2-config --cflags`
+CFLAGS += -Wno-stringop-overflow
 LIBS += `xml2-config --libs` -lexpect -ltcl
 
 .PHONY: all clean

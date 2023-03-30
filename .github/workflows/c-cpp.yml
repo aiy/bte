@@ -15,7 +15,7 @@ jobs:
     - name: Install xmllint
       run: sudo apt install -y gcc libxml2-dev tcl-expect-dev
     - name: copy expect.h
-      run: sudo cp /usr/include/tcl8.6/expect.h /usr/include
+      run: sudo cp /usr/include/tcl8.6/* /usr/include
     - uses: actions/checkout@v3
     - name: make
       run: make

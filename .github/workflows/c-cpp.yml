@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Install xmllint
+      run: sudo apt install -y gcc libxml2-dev expect
     - uses: actions/checkout@v3
     - name: make
       run: make

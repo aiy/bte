@@ -36,5 +36,5 @@ check test: $(TARGET)
 	
 clean:
 	@echo cleaning
-	@find . \( -name \*.o -o -name \*.a -o -name \*.so \) -exec rm {} \;
+	@find . \( -name \*.o -o -name \*.a -o -name \*.so -o -name \*.zip \) -exec rm {} \;
 	@rm -f $(TARGET)

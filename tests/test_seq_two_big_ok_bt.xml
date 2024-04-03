@@ -3,7 +3,7 @@
 
   <sequence>
     <action id='w_0' type='cmd' os='unix'>
-		  <exec>curl -OL https://github.com/torvalds/linux/archive/master.zip</exec>
+		  <exec>curl -OL https://github.com/contiki-ng/contiki-ng/archive/refs/tags/release/v4.9.zip</exec>
     </action>
     <action id='w_1' type='cmd' os='unix'>
 		  <exec>curl -OL https://github.com/contiki-os/contiki/archive/release-3-0.zip</exec>

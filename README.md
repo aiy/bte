@@ -45,8 +45,9 @@ sudo yum install gcc
 sudo yum install libxml2-devel
 sudo yum install tcl-devel
 sudo yum install expect-devel
+```
 
-## Dependencies testing
+## Dependencies for testing
 ```
 sudo yum install curl
 
